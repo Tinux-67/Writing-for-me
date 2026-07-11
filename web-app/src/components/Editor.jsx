@@ -11,6 +11,8 @@ import {
   getCharacterCount,
   getReadingTime 
 } from '../utils/markdown';
+import { getAllTemplates, insertTemplateAtCursor } from '../utils/templates';
+import TemplateSelector from './TemplateSelector';
 
 /**
  * Markdown Editor Component
@@ -26,6 +28,7 @@ const Editor = ({
 }) => {
   const [activeTab, setActiveTab] = useState('edit'); // 'edit', 'preview', 'split'
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const textareaRef = useRef(null);
   const previewRef = useRef(null);
   
@@ -136,6 +139,34 @@ const Editor = ({
     const newValue = value.substring(0, cursorPosition) + table + value.substring(cursorPosition);
     onChange(newValue);
   };
+
+  // Handle template insertion
+  const handleInsertTemplate = (templateContent, position) => {
+    if (readOnly) return;
+    
+    const result = insertTemplateAtCursor(value, templateContent, position);
+    onChange(result.content);
+    
+    // Focus back to textarea and set cursor position
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.selectionStart = result.cursorPosition;
+        textareaRef.current.selectionEnd = result.cursorPosition;
+      }
+    }, 0);
+  };
+
+  // Show template selector
+  const showTemplates = () => {
+    if (readOnly) return;
+    setShowTemplateSelector(true);
+  };
+
+  // Close template selector
+  const closeTemplateSelector = () => {
+    setShowTemplateSelector(false);
+  };
   
   // Calculate stats
   const wordCount = getWordCount(value);
@@ -147,6 +178,16 @@ const Editor = ({
   
   return (
     <div className="editor-container">
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <TemplateSelector
+          onInsertTemplate={handleInsertTemplate}
+          onClose={closeTemplateSelector}
+          theme={theme}
+          cursorPosition={cursorPosition}
+        />
+      )}
+      
       {/* Toolbar */}
       {showToolbar && (
         <div className="editor-toolbar">
@@ -227,7 +268,7 @@ const Editor = ({
               title="Bullet List"
               disabled={readOnly}
             >
-              <span className="toolbar-icon">• List</span>
+              <span className="toolbar-icon">\u2022 List</span>
             </button>
             <button 
               type="button" 
@@ -257,7 +298,7 @@ const Editor = ({
               title="Insert Link"
               disabled={readOnly}
             >
-              <span className="toolbar-icon">🔗</span>
+              <span className="toolbar-icon">\ud83d\udd17</span>
             </button>
             <button 
               type="button" 
@@ -266,7 +307,7 @@ const Editor = ({
               title="Insert Image"
               disabled={readOnly}
             >
-              <span className="toolbar-icon">🖼️</span>
+              <span className="toolbar-icon">\ud83d\uddbc\ufe0f</span>
             </button>
             <button 
               type="button" 
@@ -275,7 +316,7 @@ const Editor = ({
               title="Insert Table"
               disabled={readOnly}
             >
-              <span className="toolbar-icon">□</span>
+              <span className="toolbar-icon">\u25a1</span>
             </button>
             <button 
               type="button" 
@@ -284,7 +325,16 @@ const Editor = ({
               title="Horizontal Rule"
               disabled={readOnly}
             >
-              <span className="toolbar-icon">—</span>
+              <span className="toolbar-icon">\u2014</span>
+            </button>
+            <button 
+              type="button" 
+              className="button button-primary button-sm" 
+              onClick={showTemplates}
+              title="Insert Template"
+              disabled={readOnly}
+            >
+              <span className="toolbar-icon">\ud83d\udcdd</span> Templates
             </button>
           </div>
         </div>

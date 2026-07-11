@@ -96,9 +96,9 @@ const App = () => {
   }, [notes, currentTag, searchQuery]);
   
   // Create new note
-  const handleCreateNote = async (title = 'Untitled Note') => {
+  const handleCreateNote = async (title = 'Untitled Note', content = '') => {
     try {
-      const newNote = await createNote(title, '');
+      const newNote = await createNote(title, content);
       setNotes(prev => [newNote, ...prev]);
       setCurrentNoteId(newNote.id);
       return newNote;
