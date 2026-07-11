@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getAllTemplates, generateCustomBookTemplate } from '../utils/templates';
 
 /**
  * Sidebar Component
@@ -27,7 +28,16 @@ const Sidebar = ({
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+  const [templates, setTemplates] = useState([]);
   const searchInputRef = useRef(null);
+  
+  // Load templates on mount
+  useEffect(() => {
+    const allTemplates = getAllTemplates();
+    setTemplates(allTemplates);
+  }, []);
   
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -59,8 +69,30 @@ const Sidebar = ({
   // Create new note
   const handleCreateNote = () => {
     if (onCreateNote) {
-      onCreateNote(newNoteTitle || 'Untitled Note');
+      // If a template is selected, create note with template content
+      if (selectedTemplate) {
+        const template = templates.find(t => t.name === selectedTemplate);
+        if (template) {
+          onCreateNote(newNoteTitle || template.name, template.content);
+        } else {
+          onCreateNote(newNoteTitle || 'Untitled Note');
+        }
+      } else {
+        onCreateNote(newNoteTitle || 'Untitled Note');
+      }
       setNewNoteTitle('');
+      setSelectedTemplate(null);
+      setShowNewNoteModal(false);
+    }
+  };
+  
+  // Create note with specific template
+  const handleCreateNoteWithTemplate = (templateName) => {
+    const template = templates.find(t => t.name === templateName);
+    if (template && onCreateNote) {
+      onCreateNote(template.name, template.content);
+      setNewNoteTitle('');
+      setSelectedTemplate(null);
       setShowNewNoteModal(false);
     }
   };
@@ -125,6 +157,17 @@ const Sidebar = ({
     return note.isEncrypted;
   };
   
+  // Toggle template dropdown
+  const toggleTemplateDropdown = () => {
+    setShowTemplateDropdown(!showTemplateDropdown);
+  };
+
+  // Select template
+  const selectTemplate = (templateName) => {
+    setSelectedTemplate(templateName);
+    setShowTemplateDropdown(false);
+  };
+
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${theme}`}>
       {/* Sidebar Header */}
@@ -218,6 +261,25 @@ const Sidebar = ({
         </button>
       </div>
       
+      {/* Template Quick Access Buttons */}
+      {!isCollapsed && templates.length > 0 && (
+        <div className="sidebar-section template-quick-access">
+          <div className="quick-template-buttons">
+            {templates.slice(0, 3).map(template => (
+              <button
+                key={template.name}
+                type="button"
+                className="button button-ghost button-sm template-quick-button"
+                onClick={() => handleCreateNoteWithTemplate(template.name)}
+                title={`Create ${template.name}`}
+              >
+                {template.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
       {/* Tags Filter */}
       {tags && tags.length > 0 && !isCollapsed && (
         <div className="sidebar-section tags-section">
@@ -299,17 +361,12 @@ const Sidebar = ({
                         </span>
                         <span className="note-date text-muted text-xs">{date}</span>
                       </div>
-                      {preview && (
-                        <div className="note-preview text-muted text-sm">
-                          {preview}
-                        </div>
-                      )}
+                      <div className="note-preview text-muted text-xs">{preview}</div>
                     </>
                   )}
-                  
                   {isCollapsed && (
-                    <div className="note-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="note-icon" title={title || 'Untitled Note'}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <path d="M14 2v6h6" />
                         <path d="M16 13H8" />
@@ -318,62 +375,15 @@ const Sidebar = ({
                       </svg>
                     </div>
                   )}
-                  
-                  {/* Delete button */}
-                  <button 
-                    type="button" 
-                    className="button button-ghost button-icon note-delete"
-                    onClick={(e) => handleDeleteNote(note.id, e)}
-                    title="Delete note"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
                 </div>
               );
             })
           ) : (
-            <div className="notes-empty">
-              {!isCollapsed ? 'No notes found' : '•••'}
+            <div className="empty-notes text-muted text-sm">
+              {!isCollapsed && 'No notes found'}
             </div>
           )}
         </nav>
-      </div>
-      
-      {/* Sidebar Footer */}
-      <div className="sidebar-footer">
-        <button 
-          type="button" 
-          className="button button-ghost button-icon theme-toggle"
-          onClick={onToggleTheme}
-          title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        >
-          {theme === 'dark' ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="5" />
-              <path d="M12 1v2" />
-              <path d="M12 21v2" />
-              <path d="m4.22 4.22 1.42 1.42" />
-              <path d="m18.36 18.36 1.42 1.42" />
-              <path d="M1 12h2" />
-              <path d="M21 12h2" />
-              <path d="m4.22 19.78 1.42-1.42" />
-              <path d="m18.36 5.64 1.42-1.42" />
-            </svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          )}
-        </button>
-        
-        {!isCollapsed && (
-          <div className="footer-info text-xs text-muted">
-            <span>v1.0.0</span>
-          </div>
-        )}
       </div>
       
       {/* New Note Modal */}
@@ -407,6 +417,52 @@ const Sidebar = ({
                   }
                 }}
               />
+              
+              {/* Template Selection */}
+              <div className="template-selection">
+                <label className="input-label">Template (Optional)</label>
+                <div className="template-dropdown-container">
+                  <button 
+                    type="button" 
+                    className="button button-secondary template-dropdown-button"
+                    onClick={toggleTemplateDropdown}
+                  >
+                    {selectedTemplate || 'No Template'}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+                  
+                  {showTemplateDropdown && (
+                    <div className="template-dropdown">
+                      <button 
+                        type="button" 
+                        className="button button-ghost template-item"
+                        onClick={() => selectTemplate(null)}
+                      >
+                        No Template
+                      </button>
+                      {templates.map(template => (
+                        <button 
+                          key={template.name}
+                          type="button" 
+                          className="button button-ghost template-item"
+                          onClick={() => selectTemplate(template.name)}
+                        >
+                          {template.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedTemplate && (
+                  <div className="template-info">
+                    <small className="text-muted">
+                      {templates.find(t => t.name === selectedTemplate)?.description}
+                    </small>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="modal-footer">
               <button 
