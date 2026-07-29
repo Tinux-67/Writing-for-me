@@ -1,0 +1,89 @@
+version: 2
+updates:
+  # Security updates voor npm (web-app)
+  - package-ecosystem: "npm"
+    directory: "/web-app"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 10
+    labels:
+      - "security"
+      - "dependencies"
+    reviewers:
+      - "Tinux-67"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Automatisch mergen voor security updates (alleen voor patch/minor)
+    automerges:
+      - pattern: "^.*(patch|minor).*$"
+        action: "merge"
+    # Focus op security updates
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Alleen security updates voor kritieke en hoge kwetsbaarheden
+    allow:
+      - dependency-type: "all"
+    # Groepeer kleine updates
+    groups:
+      npm-security:
+        patterns:
+          - "*"
+        update-types:
+          - "security"
+
+  # Security updates voor pip (Python/Kivy app)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 5
+    labels:
+      - "security"
+      - "dependencies"
+      - "python"
+    reviewers:
+      - "Tinux-67"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Automatisch mergen voor security updates (alleen voor patch/minor)
+    automerges:
+      - pattern: "^.*(patch|minor).*$"
+        action: "merge"
+    # Focus op security updates
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Groepeer kleine updates
+    groups:
+      pip-security:
+        patterns:
+          - "*"
+        update-types:
+          - "security"
+
+  # GitHub Actions updates (indien van toepassing)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "Tinux-67"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
