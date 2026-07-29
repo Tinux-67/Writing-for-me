@@ -156,17 +156,31 @@ class ExportService:
         """Exporteer notitie naar PDF (gebruikt WeasyPrint)."""
         def _export():
             try:
-                from weasyprint import HTML
+                try:
+                    from weasyprint import HTML
+                except ImportError:
+                    Clock.schedule_once(
+                        lambda dt: callback(False, "WeasyPrint niet geïnstalleerd. Gebruik 'pip install weasyprint'"),
+                        0
+                    )
+                    return
+
                 html = markdown2.markdown(note.content)
                 output_path = note.filepath.with_suffix(".pdf")
                 HTML(string=f"<html><body>{html}</body></html>").write_pdf(
                     str(output_path)
                 )
                 Clock.schedule_once(lambda dt: callback(True, str(output_path)), 0)
-            except ImportError:
-                Clock.schedule_once(lambda dt: callback(False, "WeasyPrint niet geïnstalleerd"), 0)
+            except PermissionError:
+                Clock.schedule_once(
+                    lambda dt: callback(False, "Geen schrijfrechten voor PDF export. Controleer directory permissies."),
+                    0
+                )
             except Exception as e:
-                Clock.schedule_once(lambda dt: callback(False, f"PDF export mislukt: {e}"), 0)
+                Clock.schedule_once(
+                    lambda dt: callback(False, f"PDF export mislukt: {str(e)}"),
+                    0
+                )
 
         threading.Thread(target=_export, daemon=True).start()
 

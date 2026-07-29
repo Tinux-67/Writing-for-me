@@ -4,6 +4,7 @@
  */
 
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -21,20 +22,44 @@ marked.setOptions({
   },
   langPrefix: 'language-',
   mangle: false,
-  sanitize: true,
+  sanitize: false, // We handle sanitization with DOMPurify
   smartLists: true,
   smartypants: true,
   xhtml: false
 });
 
 /**
- * Parse markdown to HTML
+ * Sanitize HTML to prevent XSS attacks
+ * @param {string} html - HTML content to sanitize
+ * @returns {string} Sanitized HTML
+ */
+export function sanitizeHtml(html) {
+  if (!html) return '';
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'b', 'i', 'em', 'strong', 'a', 'code', 'pre',
+      'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'blockquote', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      'img', 'span', 'div', 'del', 'sub', 'sup'
+    ],
+    ALLOWED_ATTR: [
+      'href', 'title', 'alt', 'src', 'class', 'id', 'target',
+      'rel', 'style', 'lang', 'dir'
+    ],
+    FORBID_ATTR: ['onclick', 'onload', 'onerror', 'style'],
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input']
+  });
+}
+
+/**
+ * Parse markdown to HTML with XSS protection
  * @param {string} markdown - Markdown content
- * @returns {string} HTML content
+ * @returns {string} Sanitized HTML content
  */
 export function parseMarkdown(markdown) {
   if (!markdown) return '';
-  return marked.parse(markdown);
+  const html = marked.parse(markdown);
+  return sanitizeHtml(html);
 }
 
 /**
@@ -140,7 +165,7 @@ export function generateTableOfContents(markdown) {
   });
   
   html += '</ul></nav>';
-  return html;
+  return sanitizeHtml(html);
 }
 
 /**
@@ -382,6 +407,7 @@ export function insertImage(text, start, end, url, alt = '') {
 
 export default {
   parseMarkdown,
+  sanitizeHtml,
   markdownToText,
   getWordCount,
   getCharacterCount,
