@@ -82,7 +82,7 @@ export async function encryptContent(content, password) {
       iv
     };
   } catch (error) {
-    console.error('Encryption failed:', error);
+    
     throw new Error('Failed to encrypt content');
   }
 }
@@ -111,7 +111,7 @@ export async function decryptContent(encrypted, password, salt, iv) {
     
     return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (error) {
-    console.error('Decryption failed:', error);
+    
     throw new Error('Failed to decrypt content. Wrong password or corrupted data.');
   }
 }

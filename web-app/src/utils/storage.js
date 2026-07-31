@@ -78,7 +78,7 @@ export async function createNote(title, content, password = null) {
     await notesStore.setItem(id, note);
     return note;
   } catch (error) {
-    console.error('Failed to create note:', error);
+    
     throw new Error('Failed to create note');
   }
 }
@@ -170,7 +170,7 @@ export async function updateNote(id, updates, oldPassword = null) {
     await notesStore.setItem(id, updatedNote);
     return updatedNote;
   } catch (error) {
-    console.error('Failed to update note:', error);
+    
     throw error;
   }
 }
@@ -200,14 +200,14 @@ export async function getNote(id, password = null) {
         );
         return { ...note, content: decryptedContent };
       } catch (error) {
-        console.error('Failed to decrypt note:', error);
+        
         throw new Error('Failed to decrypt note. Wrong password or corrupted data.');
       }
     }
     
     return note;
   } catch (error) {
-    console.error('Failed to get note:', error);
+    
     throw error;
   }
 }
@@ -224,7 +224,7 @@ export async function getAllNotes() {
     });
     return notes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   } catch (error) {
-    console.error('Failed to get all notes:', error);
+    
     throw new Error('Failed to get all notes');
   }
 }
@@ -238,7 +238,7 @@ export async function deleteNote(id) {
   try {
     await notesStore.removeItem(id);
   } catch (error) {
-    console.error('Failed to delete note:', error);
+    
     throw new Error('Failed to delete note');
   }
 }
@@ -251,7 +251,7 @@ export async function deleteAllNotes() {
   try {
     await notesStore.clear();
   } catch (error) {
-    console.error('Failed to delete all notes:', error);
+    
     throw new Error('Failed to delete all notes');
   }
 }
@@ -278,7 +278,7 @@ export async function searchNotes(query) {
       return titleMatch || contentMatch || tagMatch;
     });
   } catch (error) {
-    console.error('Failed to search notes:', error);
+    
     throw new Error('Failed to search notes');
   }
 }
@@ -293,7 +293,7 @@ export async function getNotesByTag(tag) {
     const allNotes = await getAllNotes();
     return allNotes.filter(note => note.tags && note.tags.includes(tag));
   } catch (error) {
-    console.error('Failed to get notes by tag:', error);
+    
     throw new Error('Failed to get notes by tag');
   }
 }
@@ -315,7 +315,7 @@ export async function getAllTags() {
     
     return Array.from(tagsSet).sort();
   } catch (error) {
-    console.error('Failed to get all tags:', error);
+    
     throw new Error('Failed to get all tags');
   }
 }
@@ -371,7 +371,7 @@ export async function exportNote(note, format, password = null) {
     
     return new Blob([content], { type: mimeType, name: filename });
   } catch (error) {
-    console.error('Failed to export note:', error);
+    
     throw error;
   }
 }
@@ -528,7 +528,7 @@ export async function importNote(file, password = null) {
     
     return createNote(title, processedContent, password);
   } catch (error) {
-    console.error('Failed to import note:', error);
+    
     throw new Error('Failed to import note');
   }
 }
@@ -563,7 +563,7 @@ export async function exportAllNotes(password = null) {
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     return zipBlob;
   } catch (error) {
-    console.error('Failed to export all notes:', error);
+    
     throw new Error('Failed to export all notes');
   }
 }
@@ -585,7 +585,7 @@ export async function getStorageStats() {
       tags: tags.length
     };
   } catch (error) {
-    console.error('Failed to get storage stats:', error);
+    
     throw new Error('Failed to get storage stats');
   }
 }

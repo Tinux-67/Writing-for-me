@@ -20,7 +20,7 @@ export function useLocalStorage(key, initialValue) {
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       // If error also return initialValue
-      console.error('Error reading from localStorage:', error);
+      
       return initialValue;
     }
   });
@@ -37,7 +37,7 @@ export function useLocalStorage(key, initialValue) {
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
       // A more advanced implementation would handle the error case
-      console.error('Error saving to localStorage:', error);
+      
     }
   };
 
@@ -48,7 +48,7 @@ export function useLocalStorage(key, initialValue) {
         try {
           setStoredValue(e.newValue ? JSON.parse(e.newValue) : initialValue);
         } catch (error) {
-          console.error('Error parsing storage event:', error);
+          
         }
       }
     };
@@ -72,7 +72,7 @@ export function useSessionStorage(key, initialValue) {
       const item = window.sessionStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error('Error reading from sessionStorage:', error);
+      
       return initialValue;
     }
   });
@@ -83,7 +83,7 @@ export function useSessionStorage(key, initialValue) {
       setStoredValue(valueToStore);
       window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
-      console.error('Error saving to sessionStorage:', error);
+      
     }
   };
 
@@ -103,7 +103,7 @@ export function useDebouncedLocalStorage(key, initialValue, delay = 500) {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error('Error reading from localStorage:', error);
+      
       return initialValue;
     }
   });
@@ -119,7 +119,7 @@ export function useDebouncedLocalStorage(key, initialValue, delay = 500) {
           setStoredValue(valueToStore);
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
         } catch (error) {
-          console.error('Error saving to localStorage:', error);
+          
         }
       }, delay);
     };

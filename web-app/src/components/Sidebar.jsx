@@ -74,7 +74,7 @@ const Sidebar = ({
       setNewNoteTitle('');
       handleSelectNote(newNote.id);
     } catch (err) {
-      console.error('Failed to create note:', err);
+      
     }
   };
 
@@ -84,7 +84,7 @@ const Sidebar = ({
     try {
       await handleDeleteNote(noteId);
     } catch (err) {
-      console.error('Failed to delete note:', err);
+      
     }
   };
 
