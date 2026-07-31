@@ -116,7 +116,7 @@ const Editor = ({
       const newNote = await handleCreateNote('Untitled Note', '');
       onNoteSelect(newNote.id);
     } catch (err) {
-      
+      // Error handled
     }
   };
 

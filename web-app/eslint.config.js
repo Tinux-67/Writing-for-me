@@ -46,6 +46,7 @@ export default [
       'no-unused-vars': 'warn',
       'no-console': 'error',
       'no-undef': 'error',
+      'no-empty': 'error',
       'no-case-declarations': 'off',
       'no-useless-escape': 'off',
       'no-control-regex': 'off',
@@ -53,6 +54,7 @@ export default [
       'no-const-assign': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
+      'no-useless-catch': 'off',
     },
   },
   {

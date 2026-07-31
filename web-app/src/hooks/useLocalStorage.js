@@ -47,9 +47,9 @@ export function useLocalStorage(key, initialValue) {
       if (e.key === key) {
         try {
           setStoredValue(e.newValue ? JSON.parse(e.newValue) : initialValue);
-        } catch (error) {
-          
-        }
+        } catch (err) {
+      // Error handled
+    }
       }
     };
 
@@ -82,8 +82,8 @@ export function useSessionStorage(key, initialValue) {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
       window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      
+    } catch (err) {
+      // Error handled
     }
   };
 
@@ -118,9 +118,9 @@ export function useDebouncedLocalStorage(key, initialValue, delay = 500) {
           const valueToStore = newValue instanceof Function ? newValue(storedValue) : newValue;
           setStoredValue(valueToStore);
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        } catch (error) {
-          
-        }
+        } catch (err) {
+      // Error handled
+    }
       }, delay);
     };
   };
