@@ -19,11 +19,13 @@ import TemplateSelector from './TemplateSelector';
  * Markdown Editor Component
  * Provides a split-pane editor with live preview
  */
-const Editor = ({ 
-  currentNoteId, 
+const Editor = ({
+  currentNoteId,
   onNoteSelect,
   searchQuery,
-  currentTag
+  currentTag,
+  showToolbar = true,
+  showStats = true
 }) => {
   const { notes, handleCreateNote } = useNotes();
   const [activeTab, setActiveTab] = useState('edit');

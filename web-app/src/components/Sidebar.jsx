@@ -16,7 +16,9 @@ const Sidebar = ({
   onTagSelect,
   onExport,
   theme,
-  onThemeToggle
+  onThemeToggle,
+  currentNoteId,
+  onNoteSelect
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,6 +62,7 @@ const Sidebar = ({
 
   // Handle note selection
   const handleSelectNote = (noteId) => {
+    onNoteSelect(noteId);
     navigate(`/note/${noteId}`);
   };
 

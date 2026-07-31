@@ -51,9 +51,11 @@ export default [
       'no-control-regex': 'off',
       'preserve-caught-error': 'off',
       'no-const-assign': 'off',
+      'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
     },
   },
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/test/**'],
   },
 ];

@@ -46,6 +46,8 @@ const App = () => {
             onExport={handleExportNotes}
             onThemeToggle={toggleTheme}
             theme={theme}
+            currentNoteId={currentNoteId}
+            onNoteSelect={setCurrentNoteId}
           />
           
           <div className={`main-content ${isSidebarCollapsed ? 'collapsed' : ''}`}>
