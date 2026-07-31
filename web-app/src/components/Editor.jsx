@@ -2,16 +2,17 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, atomLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { 
-  wrapSelection, 
-  createList, 
-  insertLink, 
+import {
+  wrapSelection,
+  createList,
+  insertLink,
   insertImage,
   getWordCount,
   getCharacterCount,
-  getReadingTime 
+  getReadingTime
 } from '../utils/markdown';
 import { getAllTemplates, insertTemplateAtCursor } from '../utils/templates';
+import { useNotes } from '../context/NotesContext';
 import TemplateSelector from './TemplateSelector';
 
 /**
@@ -19,19 +20,31 @@ import TemplateSelector from './TemplateSelector';
  * Provides a split-pane editor with live preview
  */
 const Editor = ({ 
-  value, 
-  onChange, 
-  theme = 'dark',
-  readOnly = false,
-  showStats = true,
-  showToolbar = true 
+  currentNoteId, 
+  onNoteSelect,
+  searchQuery,
+  currentTag
 }) => {
-  const [activeTab, setActiveTab] = useState('edit'); // 'edit', 'preview', 'split'
+  const { notes, handleCreateNote } = useNotes();
+  const [activeTab, setActiveTab] = useState('edit');
   const [cursorPosition, setCursorPosition] = useState(0);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const textareaRef = useRef(null);
   const previewRef = useRef(null);
-  
+
+  // Get current note
+  const currentNote = notes.find(note => note.id === currentNoteId);
+
+  // Handle note selection
+  const handleNoteSelect = (noteId) => {
+    onNoteSelect(noteId);
+  };
+
+  // Handle text changes
+  const handleChange = (e) => {
+    // This will be handled by the parent or context
+  };
+
   // Sync scroll between editor and preview
   const handleScroll = useCallback((e) => {
     if (previewRef.current && activeTab === 'split') {
@@ -39,367 +52,189 @@ const Editor = ({
       previewRef.current.scrollTop = scrollPercentage * (previewRef.current.scrollHeight - previewRef.current.clientHeight);
     }
   }, [activeTab]);
-  
-  // Handle text changes
-  const handleChange = (e) => {
-    if (readOnly) return;
-    onChange(e.target.value);
-  };
-  
+
   // Handle cursor position changes
   const handleCursorChange = (e) => {
     setCursorPosition(e.target.selectionStart);
   };
-  
-  // Format text with markdown
-  const formatText = (format) => {
-    if (readOnly || !textareaRef.current) return;
-    
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = value;
-    
-    let result;
-    switch (format) {
-      case 'bold':
-        result = wrapSelection(text, start, end, 'bold');
-        break;
-      case 'italic':
-        result = wrapSelection(text, start, end, 'italic');
-        break;
-      case 'code':
-        result = wrapSelection(text, start, end, 'code');
-        break;
-      case 'strikethrough':
-        result = wrapSelection(text, start, end, 'strikethrough');
-        break;
-      case 'heading1':
-        result = wrapSelection(text, start, end, 'heading1');
-        break;
-      case 'heading2':
-        result = wrapSelection(text, start, end, 'heading2');
-        break;
-      case 'heading3':
-        result = wrapSelection(text, start, end, 'heading3');
-        break;
-      case 'bullet-list':
-        result = createList(text, start, end, 'bullet');
-        break;
-      case 'number-list':
-        result = createList(text, start, end, 'number');
-        break;
-      case 'link':
-        const url = prompt('Enter URL:');
-        if (url) {
-          result = insertLink(text, start, end, url);
-        }
-        break;
-      case 'image':
-        const imageUrl = prompt('Enter image URL:');
-        if (imageUrl) {
-          result = insertImage(text, start, end, imageUrl);
-        }
-        break;
-      default:
-        return;
+
+  // Format text
+  const formatText = (formatter) => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = textarea.value.substring(start, end);
+      const newText = formatter(selectedText, textarea.value, start, end);
+      
+      textarea.value = newText;
+      textarea.selectionStart = start + newText.length - selectedText.length;
+      textarea.selectionEnd = textarea.selectionStart;
+      
+      // Trigger onChange
+      const event = new Event('change');
+      textarea.dispatchEvent(event);
     }
-    
-    onChange(result.text);
-    // Focus back to textarea
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.selectionStart = result.newCursorPos;
-        textareaRef.current.selectionEnd = result.newCursorPos;
-      }
-    }, 0);
   };
-  
-  // Insert horizontal rule
-  const insertHorizontalRule = () => {
-    if (readOnly) return;
-    const newValue = value.substring(0, cursorPosition) + '\n---\n' + value.substring(cursorPosition);
-    onChange(newValue);
+
+  // Get syntax highlighter style based on theme
+  const getSyntaxStyle = (theme) => {
+    return theme === 'dark' ? atomDark : atomLight;
   };
-  
-  // Insert code block
-  const insertCodeBlock = () => {
-    if (readOnly) return;
-    const language = prompt('Enter language (optional):');
-    const codeBlock = language ? `\n\`\`\`${language}\n\n\`\`\`\n` : '\n\`\`\`\n\n\`\`\`\n';
-    const newValue = value.substring(0, cursorPosition) + codeBlock + value.substring(cursorPosition);
-    onChange(newValue);
-  };
-  
-  // Insert table
-  const insertTable = () => {
-    if (readOnly) return;
-    const table = `\n| Header 1 | Header 2 |\n|---------|---------|\n| Cell 1  | Cell 2  |\n\n`;
-    const newValue = value.substring(0, cursorPosition) + table + value.substring(cursorPosition);
-    onChange(newValue);
-  };
+
+  // Calculate stats
+  const wordCount = currentNote ? getWordCount(currentNote.content) : 0;
+  const charCount = currentNote ? getCharacterCount(currentNote.content) : 0;
+  const readingTime = currentNote ? getReadingTime(currentNote.content) : 0;
+
+  // Filter notes for selection
+  const filteredNotes = notes.filter(note => {
+    if (currentTag) {
+      if (!note.tags || !note.tags.includes(currentTag)) return false;
+    }
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (!note.title.toLowerCase().includes(query) && 
+          !note.content.toLowerCase().includes(query)) return false;
+    }
+    return true;
+  });
 
   // Handle template insertion
-  const handleInsertTemplate = (templateContent, position) => {
-    if (readOnly) return;
-    
-    const result = insertTemplateAtCursor(value, templateContent, position);
-    onChange(result.content);
-    
-    // Focus back to textarea and set cursor position
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.selectionStart = result.cursorPosition;
-        textareaRef.current.selectionEnd = result.cursorPosition;
-      }
-    }, 0);
+  const handleInsertTemplate = (template) => {
+    if (textareaRef.current) {
+      insertTemplateAtCursor(textareaRef.current, template.content);
+      setShowTemplateSelector(false);
+    }
   };
 
-  // Show template selector
-  const showTemplates = () => {
-    if (readOnly) return;
-    setShowTemplateSelector(true);
+  // Handle new note creation
+  const handleNewNote = async () => {
+    try {
+      const newNote = await handleCreateNote('Untitled Note', '');
+      onNoteSelect(newNote.id);
+    } catch (err) {
+      console.error('Failed to create note:', err);
+    }
   };
 
-  // Close template selector
-  const closeTemplateSelector = () => {
-    setShowTemplateSelector(false);
-  };
-  
-  // Calculate stats
-  const wordCount = getWordCount(value);
-  const charCount = getCharacterCount(value);
-  const readingTime = getReadingTime(value);
-  
-  // Get syntax highlighter style based on theme
-  const codeStyle = theme === 'light' ? atomLight : atomDark;
-  
+  if (!currentNote) {
+    return (
+      <div className="editor-container">
+        <div className="no-note-selected">
+          <p>No note selected</p>
+          <button onClick={handleNewNote}>Create New Note</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="editor-container">
-      {/* Template Selector Modal */}
-      {showTemplateSelector && (
-        <TemplateSelector
-          onInsertTemplate={handleInsertTemplate}
-          onClose={closeTemplateSelector}
-          theme={theme}
-          cursorPosition={cursorPosition}
-        />
-      )}
-      
-      {/* Toolbar */}
       {showToolbar && (
         <div className="editor-toolbar">
           <div className="toolbar-group">
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('heading1')}
-              title="Heading 1"
-              disabled={readOnly}
-            >
-              <span className="toolbar-icon">H1</span>
-            </button>
-            <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('heading2')}
-              title="Heading 2"
-              disabled={readOnly}
-            >
-              <span className="toolbar-icon">H2</span>
-            </button>
-            <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('heading3')}
-              title="Heading 3"
-              disabled={readOnly}
-            >
-              <span className="toolbar-icon">H3</span>
-            </button>
-          </div>
-          
-          <div className="toolbar-group">
-            <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('bold')}
+              onClick={() => formatText(wrapSelection('**', '**'))} 
               title="Bold"
-              disabled={readOnly}
             >
-              <span className="toolbar-icon">**B**</span>
+              <b>B</b>
             </button>
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('italic')}
+              onClick={() => formatText(wrapSelection('_', '_'))} 
               title="Italic"
-              disabled={readOnly}
             >
-              <span className="toolbar-icon">*I*</span>
+              <i>I</i>
             </button>
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('strikethrough')}
-              title="Strikethrough"
-              disabled={readOnly}
+              onClick={() => formatText(wrapSelection('`', '`'))} 
+              title="Code"
             >
-              <span className="toolbar-icon">~~S~~</span>
-            </button>
+              `</button>
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('code')}
-              title="Inline Code"
-              disabled={readOnly}
-            >
-              <span className="toolbar-icon">`Code`</span>
-            </button>
-          </div>
-          
-          <div className="toolbar-group">
-            <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('bullet-list')}
+              onClick={() => formatText(createList('- '))} 
               title="Bullet List"
-              disabled={readOnly}
             >
-              <span className="toolbar-icon">\u2022 List</span>
+              • List
             </button>
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('number-list')}
+              onClick={() => formatText(createList('1. '))} 
               title="Numbered List"
-              disabled={readOnly}
             >
-              <span className="toolbar-icon">1. List</span>
+              1. List
+            </button>
+            <button 
+              onClick={() => formatText(insertLink)} 
+              title="Insert Link"
+            >
+              🔗
+            </button>
+            <button 
+              onClick={() => formatText(insertImage)} 
+              title="Insert Image"
+            >
+              🖼️
+            </button>
+            <button 
+              onClick={() => setShowTemplateSelector(true)} 
+              title="Insert Template"
+            >
+              📄
             </button>
           </div>
-          
           <div className="toolbar-group">
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={insertCodeBlock}
-              title="Code Block"
-              disabled={readOnly}
+              onClick={() => setActiveTab('edit')} 
+              className={activeTab === 'edit' ? 'active' : ''}
             >
-              <span className="toolbar-icon">{'{}'}</span>
+              Edit
             </button>
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('link')}
-              title="Insert Link"
-              disabled={readOnly}
+              onClick={() => setActiveTab('preview')} 
+              className={activeTab === 'preview' ? 'active' : ''}
             >
-              <span className="toolbar-icon">\ud83d\udd17</span>
+              Preview
             </button>
             <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={() => formatText('image')}
-              title="Insert Image"
-              disabled={readOnly}
+              onClick={() => setActiveTab('split')} 
+              className={activeTab === 'split' ? 'active' : ''}
             >
-              <span className="toolbar-icon">\ud83d\uddbc\ufe0f</span>
-            </button>
-            <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={insertTable}
-              title="Insert Table"
-              disabled={readOnly}
-            >
-              <span className="toolbar-icon">\u25a1</span>
-            </button>
-            <button 
-              type="button" 
-              className="button button-ghost button-sm" 
-              onClick={insertHorizontalRule}
-              title="Horizontal Rule"
-              disabled={readOnly}
-            >
-              <span className="toolbar-icon">\u2014</span>
-            </button>
-            <button 
-              type="button" 
-              className="button button-primary button-sm" 
-              onClick={showTemplates}
-              title="Insert Template"
-              disabled={readOnly}
-            >
-              <span className="toolbar-icon">\ud83d\udcdd</span> Templates
+              Split
             </button>
           </div>
         </div>
       )}
-      
-      {/* View tabs */}
-      <div className="editor-tabs">
-        <button 
-          type="button" 
-          className={`button button-ghost button-sm ${activeTab === 'edit' ? 'active' : ''}`}
-          onClick={() => setActiveTab('edit')}
-        >
-          Edit
-        </button>
-        <button 
-          type="button" 
-          className={`button button-ghost button-sm ${activeTab === 'preview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('preview')}
-        >
-          Preview
-        </button>
-        <button 
-          type="button" 
-          className={`button button-ghost button-sm ${activeTab === 'split' ? 'active' : ''}`}
-          onClick={() => setActiveTab('split')}
-        >
-          Split
-        </button>
-      </div>
-      
-      {/* Editor and Preview */}
+
       <div className={`editor-content ${activeTab}`}>
-        {/* Edit Panel */}
-        <div 
-          className={`editor-panel edit-panel ${activeTab === 'split' ? 'split-view' : ''}`}
-          onScroll={handleScroll}
-        >
+        {activeTab !== 'preview' && (
           <textarea
             ref={textareaRef}
-            value={value}
+            value={currentNote.content}
             onChange={handleChange}
+            onScroll={handleScroll}
             onSelect={handleCursorChange}
             className="editor-textarea"
-            placeholder="Start writing your markdown note..."
-            readOnly={readOnly}
-            spellCheck="true"
+            placeholder="Start writing..."
           />
-        </div>
-        
-        {/* Preview Panel */}
-        <div 
-          ref={previewRef}
-          className={`editor-panel preview-panel ${activeTab === 'split' ? 'split-view' : ''}`}
-        >
-          <div className="markdown-preview">
+        )}
+
+        {activeTab !== 'edit' && (
+          <div 
+            ref={previewRef} 
+            className="editor-preview"
+            onScroll={handleScroll}
+          >
             <ReactMarkdown
+              children={currentNote.content}
               components={{
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline && match ? (
                     <SyntaxHighlighter
-                      style={codeStyle}
+                      children={String(children).replace(/\n$/, '')}
+                      style={getSyntaxStyle('dark')}
                       language={match[1]}
                       PreTag="div"
-                      children={String(children).replace(/\n$/, '')}
                       {...props}
                     />
                   ) : (
@@ -407,52 +242,29 @@ const Editor = ({
                       {children}
                     </code>
                   );
-                },
-                table({ node, children, ...props }) {
-                  return (
-                    <table className="markdown-table" {...props}>
-                      {children}
-                    </table>
-                  );
-                },
-                th({ node, children, ...props }) {
-                  return (
-                    <th className="markdown-th" {...props}>
-                      {children}
-                    </th>
-                  );
-                },
-                td({ node, children, ...props }) {
-                  return (
-                    <td className="markdown-td" {...props}>
-                      {children}
-                    </td>
-                  );
                 }
               }}
-            >
-              {value || 'Nothing to preview'}
-            </ReactMarkdown>
+            />
           </div>
-        </div>
+        )}
       </div>
-      
-      {/* Stats */}
+
       {showStats && (
         <div className="editor-stats">
-          <span className="stat-item">
-            <span className="stat-label">Words:</span> {wordCount}
-          </span>
-          <span className="stat-item">
-            <span className="stat-label">Characters:</span> {charCount}
-          </span>
-          <span className="stat-item">
-            <span className="stat-label">Reading Time:</span> {readingTime} min
-          </span>
+          <span>Words: {wordCount}</span>
+          <span>Characters: {charCount}</span>
+          <span>Reading Time: {readingTime} min</span>
         </div>
+      )}
+
+      {showTemplateSelector && (
+        <TemplateSelector
+          onSelect={handleInsertTemplate}
+          onClose={() => setShowTemplateSelector(false)}
+        />
       )}
     </div>
   );
 };
 
-export default React.memo(Editor);
+export default Editor;

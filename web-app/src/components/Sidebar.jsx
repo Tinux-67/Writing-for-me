@@ -1,29 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useNotes } from '../context/NotesContext';
 import { getAllTemplates, generateCustomBookTemplate } from '../utils/templates';
 
 /**
  * Sidebar Component
  * Provides navigation, note list, and app controls
  */
-const Sidebar = ({ 
-  notes, 
-  currentNoteId, 
-  onCreateNote, 
-  onSelectNote, 
-  onDeleteNote, 
-  onSearch, 
-  searchQuery, 
-  tags,
-  onSelectTag,
-  currentTag,
+const Sidebar = ({
   isCollapsed,
-  onToggleCollapse,
+  onToggle,
+  searchQuery,
+  onSearch,
+  currentTag,
+  onTagSelect,
+  onExport,
   theme,
-  onToggleTheme
+  onThemeToggle
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { notes, tags, filteredNotes, handleCreateNote, handleDeleteNote } = useNotes();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');
@@ -32,13 +29,13 @@ const Sidebar = ({
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [templates, setTemplates] = useState([]);
   const searchInputRef = useRef(null);
-  
+
   // Load templates on mount
   useEffect(() => {
     const allTemplates = getAllTemplates();
     setTemplates(allTemplates);
   }, []);
-  
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -48,436 +45,230 @@ const Sidebar = ({
         searchInputRef.current?.focus();
       }
       
-      // Ctrl/Cmd + N to create new note
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault();
-        handleCreateNote();
+      // Escape to blur search
+      if (e.key === 'Escape') {
+        setIsSearchFocused(false);
+        setShowNewNoteModal(false);
+        setShowTagsDropdown(false);
+        setShowTemplateDropdown(false);
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
-  // Handle search input focus
-  useEffect(() => {
-    if (isSearchFocused && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchFocused]);
-  
-  // Create new note
-  const handleCreateNote = () => {
-    if (onCreateNote) {
-      // If a template is selected, create note with template content
-      if (selectedTemplate) {
-        const template = templates.find(t => t.name === selectedTemplate);
-        if (template) {
-          onCreateNote(newNoteTitle || template.name, template.content);
-        } else {
-          onCreateNote(newNoteTitle || 'Untitled Note');
-        }
-      } else {
-        onCreateNote(newNoteTitle || 'Untitled Note');
-      }
-      setNewNoteTitle('');
-      setSelectedTemplate(null);
-      setShowNewNoteModal(false);
-    }
-  };
-  
-  // Create note with specific template
-  const handleCreateNoteWithTemplate = (templateName) => {
-    const template = templates.find(t => t.name === templateName);
-    if (template && onCreateNote) {
-      onCreateNote(template.name, template.content);
-      setNewNoteTitle('');
-      setSelectedTemplate(null);
-      setShowNewNoteModal(false);
-    }
-  };
-  
-  // Select note
+
+  // Handle note selection
   const handleSelectNote = (noteId) => {
-    if (onSelectNote) {
-      onSelectNote(noteId);
-      navigate(`/note/${noteId}`);
-    }
-  };
-  
-  // Delete note with confirmation
-  const handleDeleteNote = (noteId, e) => {
-    e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-      onDeleteNote(noteId);
-    }
-  };
-  
-  // Select tag
-  const handleSelectTag = (tag) => {
-    if (onSelectTag) {
-      onSelectTag(tag === currentTag ? null : tag);
-      setShowTagsDropdown(false);
-    }
-  };
-  
-  // Clear search
-  const handleClearSearch = () => {
-    if (onSearch) {
-      onSearch('');
-    }
-  };
-  
-  // Get note title preview
-  const getNotePreview = (note) => {
-    const title = note.title || 'Untitled Note';
-    const content = note.content || '';
-    
-    // Get first line of content if no title
-    const preview = content.split('\n')[0] || '';
-    
-    return {
-      title: title.substring(0, 30),
-      preview: preview.substring(0, 50)
-    };
-  };
-  
-  // Get note date
-  const getNoteDate = (note) => {
-    const date = new Date(note.updatedAt || note.createdAt);
-    return date.toLocaleDateString(undefined, { 
-      month: 'short', 
-      day: 'numeric',
-      year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-    });
-  };
-  
-  // Check if note is encrypted
-  const isNoteEncrypted = (note) => {
-    return note.isEncrypted;
-  };
-  
-  // Toggle template dropdown
-  const toggleTemplateDropdown = () => {
-    setShowTemplateDropdown(!showTemplateDropdown);
+    navigate(`/note/${noteId}`);
   };
 
-  // Select template
-  const selectTemplate = (templateName) => {
-    setSelectedTemplate(templateName);
+  // Handle new note creation
+  const handleCreateNewNote = async () => {
+    try {
+      const newNote = await handleCreateNote(newNoteTitle || 'Untitled Note');
+      setShowNewNoteModal(false);
+      setNewNoteTitle('');
+      handleSelectNote(newNote.id);
+    } catch (err) {
+      console.error('Failed to create note:', err);
+    }
+  };
+
+  // Handle note deletion
+  const handleDeleteNoteClick = async (noteId, e) => {
+    e.stopPropagation();
+    try {
+      await handleDeleteNote(noteId);
+    } catch (err) {
+      console.error('Failed to delete note:', err);
+    }
+  };
+
+  // Filter notes based on current search and tag
+  const displayNotes = filteredNotes(searchQuery, currentTag);
+
+  // Handle template selection
+  const handleTemplateSelect = (template) => {
+    setSelectedTemplate(template);
     setShowTemplateDropdown(false);
+    setNewNoteTitle(template.name);
+  };
+
+  // Handle tag selection
+  const handleTagClick = (tag) => {
+    onTagSelect(tag === currentTag ? null : tag);
+  };
+
+  // Handle search
+  const handleSearchChange = (e) => {
+    onSearch(e.target.value);
   };
 
   return (
-    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${theme}`}>
-      {/* Sidebar Header */}
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <div className="sidebar-brand">
-          <div className="brand-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <path d="M14 2v6h6" />
-              <path d="M16 13H8" />
-              <path d="M16 17H8" />
-              <path d="M10 9H8" />
-            </svg>
-          </div>
-          {!isCollapsed && (
-            <div className="brand-name">
-              <span>Markdown</span>
-              <span>Notes</span>
-            </div>
-          )}
-        </div>
-        
-        {/* Collapse Toggle */}
         <button 
-          type="button" 
-          className="button button-ghost button-icon sidebar-toggle"
-          onClick={onToggleCollapse}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="menu-toggle" 
+          onClick={onToggle}
+          aria-label="Toggle sidebar"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {isCollapsed ? (
-              <path d="M13 2L3 12h9l-1 8 10-6-1-8z" />
-            ) : (
-              <path d="M21 12H3" />
-            )}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-      </div>
-      
-      {/* Search */}
-      <div className="sidebar-section search-section">
-        <div className="search-container">
-          <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="input search-input"
-            placeholder={isCollapsed ? '' : 'Search notes...'}
-            value={searchQuery}
-            onChange={(e) => onSearch(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-          />
-          {searchQuery && !isCollapsed && (
-            <button 
-              type="button" 
-              className="button button-ghost button-icon search-clear"
-              onClick={handleClearSearch}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-        
-        {/* Keyboard shortcut hint */}
-        {!isCollapsed && !isSearchFocused && (
-          <div className="keyboard-hint text-xs text-muted">
-            Ctrl+K to search
-          </div>
+        {!isCollapsed && (
+          <>
+            <h1 className="app-title">Markdown Notes</h1>
+            <div className="sidebar-actions">
+              <button 
+                className="theme-toggle" 
+                onClick={onThemeToggle}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+              <button 
+                className="export-btn" 
+                onClick={onExport}
+                aria-label="Export notes"
+              >
+                📥
+              </button>
+              <button 
+                className="new-note-btn" 
+                onClick={() => setShowNewNoteModal(true)}
+                aria-label="New note"
+              >
+                ➕
+              </button>
+            </div>
+          </>
         )}
       </div>
-      
-      {/* Create Note Button */}
-      <div className="sidebar-section">
-        <button 
-          type="button" 
-          className="button button-primary create-note-button"
-          onClick={() => setShowNewNoteModal(true)}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-          {!isCollapsed && <span>New Note</span>}
-        </button>
-      </div>
-      
-      {/* Template Quick Access Buttons */}
-      {!isCollapsed && templates.length > 0 && (
-        <div className="sidebar-section template-quick-access">
-          <div className="quick-template-buttons">
-            {templates.slice(0, 3).map(template => (
-              <button
-                key={template.name}
-                type="button"
-                className="button button-ghost button-sm template-quick-button"
-                onClick={() => handleCreateNoteWithTemplate(template.name)}
-                title={`Create ${template.name}`}
-              >
-                {template.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Tags Filter */}
-      {tags && tags.length > 0 && !isCollapsed && (
-        <div className="sidebar-section tags-section">
-          <div className="tags-header">
-            <span className="section-title">Tags</span>
-            <button 
-              type="button" 
-              className="button button-ghost button-sm"
-              onClick={() => setShowTagsDropdown(!showTagsDropdown)}
-            >
-              {currentTag ? `#${currentTag}` : 'All'}
-            </button>
-          </div>
-          
-          {showTagsDropdown && (
-            <div className="tags-dropdown">
+
+      {!isCollapsed && (
+        <>
+          <div className="search-container">
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search notes... (Ctrl+K)"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              className={isSearchFocused ? 'focused' : ''}
+            />
+            {isSearchFocused && searchQuery && (
               <button 
-                type="button" 
-                className={`button button-ghost button-sm tag-item ${!currentTag ? 'active' : ''}`}
-                onClick={() => handleSelectTag(null)}
+                className="clear-search" 
+                onClick={() => onSearch('')}
               >
-                All Notes
+                ×
               </button>
-              {tags.map(tag => (
-                <button 
-                  key={tag}
-                  type="button" 
-                  className={`button button-ghost button-sm tag-item ${currentTag === tag ? 'active' : ''}`}
-                  onClick={() => handleSelectTag(tag)}
-                >
-                  #{tag}
-                </button>
-              ))}
+            )}
+          </div>
+
+          <div className="tags-section">
+            <div className="tags-header">
+              <span>Tags</span>
+              <button 
+                className="tags-toggle" 
+                onClick={() => setShowTagsDropdown(!showTagsDropdown)}
+              >
+                {showTagsDropdown ? '▲' : '▼'}
+              </button>
             </div>
-          )}
-        </div>
-      )}
-      
-      {/* Notes List */}
-      <div className="sidebar-section notes-section">
-        <div className="notes-header">
-          {!isCollapsed && (
-            <span className="section-title">
-              {currentTag ? `#${currentTag}` : 'All Notes'}
-            </span>
-          )}
-          {!isCollapsed && notes && (
-            <span className="notes-count text-muted text-sm">
-              {notes.length}
-            </span>
-          )}
-        </div>
-        
-        <nav className="notes-nav">
-          {notes && notes.length > 0 ? (
-            notes.map(note => {
-              const { title, preview } = getNotePreview(note);
-              const date = getNoteDate(note);
-              const isEncrypted = isNoteEncrypted(note);
-              const isActive = currentNoteId === note.id;
-              
-              return (
-                <div 
+            {showTagsDropdown && (
+              <div className="tags-dropdown">
+                {tags.map(tag => (
+                  <button
+                    key={tag}
+                    className={`tag-btn ${currentTag === tag ? 'active' : ''}`}
+                    onClick={() => handleTagClick(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="notes-list">
+            <div className="notes-header">
+              <span>Notes ({displayNotes.length})</span>
+            </div>
+            {displayNotes.length === 0 ? (
+              <div className="empty-notes">No notes found</div>
+            ) : (
+              displayNotes.map(note => (
+                <div
                   key={note.id}
-                  className={`note-item ${isActive ? 'active' : ''} ${isCollapsed ? 'collapsed' : ''}`}
+                  className={`note-item ${currentNoteId === note.id ? 'active' : ''}`}
                   onClick={() => handleSelectNote(note.id)}
                 >
-                  {!isCollapsed && (
-                    <>
-                      <div className="note-header">
-                        <span className="note-title">
-                          {isEncrypted && (
-                            <svg className="encrypted-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                          )}
-                          {title || 'Untitled Note'}
-                        </span>
-                        <span className="note-date text-muted text-xs">{date}</span>
-                      </div>
-                      <div className="note-preview text-muted text-xs">{preview}</div>
-                    </>
-                  )}
-                  {isCollapsed && (
-                    <div className="note-icon" title={title || 'Untitled Note'}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <path d="M14 2v6h6" />
-                        <path d="M16 13H8" />
-                        <path d="M16 17H8" />
-                        <path d="M10 9H8" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <div className="empty-notes text-muted text-sm">
-              {!isCollapsed && 'No notes found'}
-            </div>
-          )}
-        </nav>
-      </div>
-      
-      {/* New Note Modal */}
-      {showNewNoteModal && !isCollapsed && (
-        <div className="modal-overlay" onClick={() => setShowNewNoteModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create New Note</h3>
-              <button 
-                type="button" 
-                className="button button-ghost button-icon"
-                onClick={() => setShowNewNoteModal(false)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="modal-body">
-              <label className="input-label">Note Title</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="Untitled Note"
-                value={newNoteTitle}
-                onChange={(e) => setNewNoteTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleCreateNote();
-                  }
-                }}
-              />
-              
-              {/* Template Selection */}
-              <div className="template-selection">
-                <label className="input-label">Template (Optional)</label>
-                <div className="template-dropdown-container">
-                  <button 
-                    type="button" 
-                    className="button button-secondary template-dropdown-button"
-                    onClick={toggleTemplateDropdown}
-                  >
-                    {selectedTemplate || 'No Template'}
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </button>
-                  
-                  {showTemplateDropdown && (
-                    <div className="template-dropdown">
-                      <button 
-                        type="button" 
-                        className="button button-ghost template-item"
-                        onClick={() => selectTemplate(null)}
-                      >
-                        No Template
-                      </button>
-                      {templates.map(template => (
-                        <button 
-                          key={template.name}
-                          type="button" 
-                          className="button button-ghost template-item"
-                          onClick={() => selectTemplate(template.name)}
-                        >
-                          {template.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {selectedTemplate && (
-                  <div className="template-info">
-                    <small className="text-muted">
-                      {templates.find(t => t.name === selectedTemplate)?.description}
-                    </small>
+                  <div className="note-title">{note.title}</div>
+                  <div className="note-meta">
+                    <span className="note-date">
+                      {new Date(note.updatedAt).toLocaleDateString()}
+                    </span>
+                    <button 
+                      className="delete-btn" 
+                      onClick={(e) => handleDeleteNoteClick(note.id, e)}
+                      aria-label="Delete note"
+                    >
+                      🗑️
+                    </button>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="modal-footer">
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {/* New Note Modal */}
+      {showNewNoteModal && (
+        <div className="modal-overlay" onClick={() => setShowNewNoteModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>New Note</h3>
+            <div className="template-selector">
               <button 
-                type="button" 
-                className="button button-secondary"
-                onClick={() => setShowNewNoteModal(false)}
+                className="template-toggle" 
+                onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
               >
+                {selectedTemplate ? selectedTemplate.name : 'Select Template'}
+              </button>
+              {showTemplateDropdown && (
+                <div className="template-dropdown">
+                  {templates.map(template => (
+                    <button
+                      key={template.id}
+                      className="template-item"
+                      onClick={() => handleTemplateSelect(template)}
+                    >
+                      {template.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <input
+              type="text"
+              placeholder="Note title"
+              value={newNoteTitle}
+              onChange={(e) => setNewNoteTitle(e.target.value)}
+              autoFocus
+            />
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setShowNewNoteModal(false)}>
                 Cancel
               </button>
-              <button 
-                type="button" 
-                className="button button-primary"
-                onClick={handleCreateNote}
-              >
-                Create Note
+              <button className="create-btn" onClick={handleCreateNewNote}>
+                Create
               </button>
             </div>
           </div>
@@ -487,4 +278,4 @@ const Sidebar = ({
   );
 };
 
-export default React.memo(Sidebar);
+export default Sidebar;
