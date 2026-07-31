@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     visualizer({
@@ -24,16 +25,22 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 1000, // Warn bij chunks > 1000KB
+    chunkSizeWarningLimit: 1000,
   },
   server: {
-    port: 3000,
+    port: process.env.PORT || 3000,
     open: true,
     cors: true,
+    host: '0.0.0.0',
+    strictPort: true,
+    hmr: {
+      clientPort: process.env.PORT || 3000,
+    },
   },
   preview: {
-    port: 4173,
+    port: process.env.PORT || 4173,
     open: true,
+    host: '0.0.0.0',
   },
   resolve: {
     alias: {

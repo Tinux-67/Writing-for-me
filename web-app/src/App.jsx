@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotesProvider } from './context/NotesContext';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
