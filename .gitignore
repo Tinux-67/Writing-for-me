@@ -41,3 +41,5 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+node_modules/
+web-app/node_modules/
