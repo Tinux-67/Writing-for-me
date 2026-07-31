@@ -10,7 +10,7 @@ on:
       - '.github/dependabot.yml'
 
 jobs:
-  test:
+  CI:
     runs-on: ubuntu-latest
     defaults:
       run:
