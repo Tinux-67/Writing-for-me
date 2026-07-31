@@ -37,11 +37,10 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm install --legacy-peer-deps
+        run: npm install --no-fund --legacy-peer-deps
 
-      - name: Lint (with output)
-        run: npm run lint || true
+      - name: Lint
+        run: npm run lint
 
-      - name: Test (with output)
+      - name: Test
         run: npm run test || true
