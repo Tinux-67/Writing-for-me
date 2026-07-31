@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
 
@@ -27,7 +27,7 @@ jobs:
           npm ci || npm install
 
       - name: Lint
-        run: npm run lint || true
+        run: npm run lint
 
       - name: Test
-        run: npm run test || true
+        run: npm run test
