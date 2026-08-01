@@ -10,7 +10,7 @@ on:
       - '.github/dependabot.yml'
 
 jobs:
-  CI:
+  lint:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,7 +27,6 @@ jobs:
 
       - name: Cache node_modules
         uses: actions/cache@v3
-        id: cache-node-modules
         with:
           path: |
             node_modules
@@ -41,6 +40,35 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-app
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install --no-fund --legacy-peer-deps
 
       - name: Test
         run: npm run test || true

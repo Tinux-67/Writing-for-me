@@ -18,9 +18,8 @@ export function useLocalStorage(key, initialValue) {
       const item = window.localStorage.getItem(key);
       // Parse stored json or return initialValue
       return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
+    } catch (_err) {
       // If error also return initialValue
-      
       return initialValue;
     }
   });
@@ -35,9 +34,8 @@ export function useLocalStorage(key, initialValue) {
       setStoredValue(valueToStore);
       // Save to local storage
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
+    } catch (_err) {
       // A more advanced implementation would handle the error case
-      
     }
   };
 
@@ -47,9 +45,9 @@ export function useLocalStorage(key, initialValue) {
       if (e.key === key) {
         try {
           setStoredValue(e.newValue ? JSON.parse(e.newValue) : initialValue);
-        } catch (err) {
-      // Error handled
-    }
+        } catch (_err) {
+          // Error handled
+        }
       }
     };
 
@@ -59,82 +57,3 @@ export function useLocalStorage(key, initialValue) {
 
   return [storedValue, setValue];
 }
-
-/**
- * Use sessionStorage state
- * @param {string} key - Storage key
- * @param {*} initialValue - Initial value
- * @returns {[*, Function]} State and setter
- */
-export function useSessionStorage(key, initialValue) {
-  const [storedValue, setStoredValue] = useState(() => {
-    try {
-      const item = window.sessionStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      
-      return initialValue;
-    }
-  });
-
-  const setValue = (value) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (err) {
-      // Error handled
-    }
-  };
-
-  return [storedValue, setValue];
-}
-
-/**
- * Use debounced localStorage state
- * @param {string} key - Storage key
- * @param {*} initialValue - Initial value
- * @param {number} delay - Debounce delay in ms
- * @returns {[*, Function]} State and setter
- */
-export function useDebouncedLocalStorage(key, initialValue, delay = 500) {
-  const [storedValue, setStoredValue] = useState(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      
-      return initialValue;
-    }
-  });
-
-  // Debounce the setter
-  const debouncedSetValue = (value) => {
-    let timeoutId;
-    return (newValue) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        try {
-          const valueToStore = newValue instanceof Function ? newValue(storedValue) : newValue;
-          setStoredValue(valueToStore);
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        } catch (err) {
-      // Error handled
-    }
-      }, delay);
-    };
-  };
-
-  const setValue = useCallback(debouncedSetValue, [key, delay]);
-
-  return [storedValue, setValue];
-}
-
-// Re-export for convenience
-import { useCallback } from 'react';
-
-export default {
-  useLocalStorage,
-  useSessionStorage,
-  useDebouncedLocalStorage
-};

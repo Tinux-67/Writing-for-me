@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotesProvider } from './context/NotesContext';
 import { useTheme } from './hooks/useTheme';
@@ -27,14 +27,14 @@ const App = () => {
       const notes = await exportAllNotes();
       const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
       saveAs(blob, 'notes-export.json');
-    } catch (err) {
+    } catch (_err) {
       // Error handled
     }
   };
 
   return (
     <NotesProvider>
-      <Router>
+      <Router basename="/">
         <div className="app" data-theme={theme}>
           <Sidebar
             isCollapsed={isSidebarCollapsed}

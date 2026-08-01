@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+{ useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotes } from '../context/NotesContext';
-import { getAllTemplates, generateCustomBookTemplate } from '../utils/templates';
+import { getAllTemplates } from '../utils/templates';
 
 /**
  * Sidebar Component
@@ -73,7 +73,7 @@ const Sidebar = ({
       setShowNewNoteModal(false);
       setNewNoteTitle('');
       handleSelectNote(newNote.id);
-    } catch (err) {
+    } catch (_err) {
       // Error handled
     }
   };
@@ -83,7 +83,7 @@ const Sidebar = ({
     e.stopPropagation();
     try {
       await handleDeleteNote(noteId);
-    } catch (err) {
+    } catch (_err) {
       // Error handled
     }
   };

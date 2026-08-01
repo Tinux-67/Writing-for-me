@@ -1,11 +1,9 @@
-import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
+{ createContext, useState, useCallback, useContext } from 'react';
 import {
   getAllNotes,
   getAllTags,
   createNote,
   deleteNote,
-  searchNotes,
-  getNotesByTag,
 } from '../utils/storage';
 
 /**
@@ -38,8 +36,8 @@ export const NotesProvider = ({ children }) => {
       setTags(allTags);
       
       setIsLoading(false);
-    } catch (err) {
-      setError(err.message);
+    } catch (_err) {
+      setError(_err.message);
       setIsLoading(false);
     }
   }, []);
@@ -72,9 +70,9 @@ export const NotesProvider = ({ children }) => {
       const newNote = await createNote(title, content);
       setNotes(prev => [newNote, ...prev]);
       return newNote;
-    } catch (err) {
-      setError(err.message);
-      throw err;
+    } catch (_err) {
+      setError(_err.message);
+      throw _err;
     }
   };
 
@@ -83,29 +81,9 @@ export const NotesProvider = ({ children }) => {
     try {
       await deleteNote(noteId);
       setNotes(prev => prev.filter(note => note.id !== noteId));
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  };
-
-  // Search notes
-  const handleSearchNotes = async (query) => {
-    try {
-      return await searchNotes(query);
-    } catch (err) {
-      setError(err.message);
-      return [];
-    }
-  };
-
-  // Get notes by tag
-  const handleGetNotesByTag = async (tag) => {
-    try {
-      return await getNotesByTag(tag);
-    } catch (err) {
-      setError(err.message);
-      return [];
+    } catch (_err) {
+      setError(_err.message);
+      throw _err;
     }
   };
 
@@ -118,8 +96,6 @@ export const NotesProvider = ({ children }) => {
     filteredNotes,
     handleCreateNote,
     handleDeleteNote,
-    handleSearchNotes,
-    handleGetNotesByTag,
     setNotes,
     setTags,
     setIsLoading,

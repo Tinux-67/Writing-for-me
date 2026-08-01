@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+{ useState, useEffect, useRef } from 'react';
 import {
   getAllTemplates,
   getTemplatesByCategory,

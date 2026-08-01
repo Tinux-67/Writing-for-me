@@ -14,13 +14,18 @@ export default defineConfig({
     }),
   ],
   build: {
-    minify: 'esbuild',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+      },
+    },
     sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          markdown: ['react-markdown', 'marked', 'highlight.js'],
+          syntax: ['react-markdown', 'highlight.js', 'prism'],
           utils: ['crypto-js', 'uuid', 'localforage', 'jszip', 'file-saver'],
         },
       },

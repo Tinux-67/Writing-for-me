@@ -8,15 +8,6 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
-        // React globals
-        React: 'readonly',
-        useState: 'readonly',
-        useEffect: 'readonly',
-        useCallback: 'readonly',
-        useMemo: 'readonly',
-        useRef: 'readonly',
-        useContext: 'readonly',
-        useReducer: 'readonly',
         // React Router globals
         useNavigate: 'readonly',
         useLocation: 'readonly',
@@ -43,7 +34,7 @@ export default [
       },
     },
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-console': 'error',
       'no-undef': 'error',
       'no-empty': 'error',

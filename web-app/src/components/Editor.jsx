@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+{ useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, atomLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -11,7 +11,7 @@ import {
   getCharacterCount,
   getReadingTime
 } from '../utils/markdown';
-import { getAllTemplates, insertTemplateAtCursor } from '../utils/templates';
+import { insertTemplateAtCursor } from '../utils/templates';
 import { useNotes } from '../context/NotesContext';
 import TemplateSelector from './TemplateSelector';
 
@@ -115,7 +115,7 @@ const Editor = ({
     try {
       const newNote = await handleCreateNote('Untitled Note', '');
       onNoteSelect(newNote.id);
-    } catch (err) {
+    } catch (_err) {
       // Error handled
     }
   };
