@@ -46,15 +46,7 @@
     "vite": "^8.2.0",
     "vitest": "^4.1.10"
   },
-  "keywords": [
-    "markdown",
-    "notes",
-    "web-app",
-    "cross-platform",
-    "secure",
-    "export",
-    "encryption"
-  ],
+  "keywords": ["markdown","notes","web-app","cross-platform","secure","export","encryption"],
   "author": "Tinux-67",
   "license": "MIT"
 }
