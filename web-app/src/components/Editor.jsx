@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -16,6 +16,17 @@ import { useNotes } from '../context/NotesContext';
 import TemplateSelector from './TemplateSelector';
 
 /**
+ * Simple debounce utility — delays fn until after `delay` ms of inactivity.
+ */
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+/**
  * Markdown Editor Component
  * Provides a split-pane editor with live preview
  */
@@ -27,7 +38,7 @@ const Editor = ({
   showToolbar = true,
   showStats = true
 }) => {
-  const { notes, handleCreateNote } = useNotes();
+  const { notes, handleCreateNote, handleUpdateNote } = useNotes();
   const [activeTab, setActiveTab] = useState('edit');
   const [, setCursorPosition] = useState(0);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -37,9 +48,29 @@ const Editor = ({
   // Get current note
   const currentNote = notes.find(note => note.id === currentNoteId);
 
-  // Handle text changes (placeholder — content updates managed by context)
-  const handleChange = (_e) => {
-    // This will be handled by the parent or context
+  // Local content for responsive typing (controlled textarea + no-op onChange = snap-back)
+  const [localContent, setLocalContent] = useState(currentNote?.content ?? '');
+
+  // Sync local content when the current note changes
+  useEffect(() => {
+    setLocalContent(currentNote?.content ?? '');
+  }, [currentNoteId, currentNote?.content]);
+
+  // Debounced save to context / storage (400 ms after last keystroke)
+  const debouncedSave = useCallback(
+    debounce(async (content) => {
+      if (currentNoteId) {
+        await handleUpdateNote(currentNoteId, { content });
+      }
+    }, 400),
+    [currentNoteId, handleUpdateNote]
+  );
+
+  // Handle text changes — update local state instantly, debounce the persist
+  const handleChange = (e) => {
+    const newContent = e.target.value;
+    setLocalContent(newContent);
+    debouncedSave(newContent);
   };
 
   // Sync scroll between editor and preview
@@ -79,10 +110,10 @@ const Editor = ({
     return theme === 'dark' ? atomDark : oneLight;
   };
 
-  // Calculate stats
-  const wordCount = currentNote ? getWordCount(currentNote.content) : 0;
-  const charCount = currentNote ? getCharacterCount(currentNote.content) : 0;
-  const readingTime = currentNote ? getReadingTime(currentNote.content) : 0;
+  // Calculate stats (use localContent for live counts)
+  const wordCount = currentNote ? getWordCount(localContent) : 0;
+  const charCount = currentNote ? getCharacterCount(localContent) : 0;
+  const readingTime = currentNote ? getReadingTime(localContent) : 0;
 
   // Filter notes for selection (used by template/note-picker UI if rendered)
   const _filteredNotes = notes.filter(note => {
@@ -206,7 +237,7 @@ const Editor = ({
         {activeTab !== 'preview' && (
           <textarea
             ref={textareaRef}
-            value={currentNote.content}
+            value={localContent}
             onChange={handleChange}
             onScroll={handleScroll}
             onSelect={handleCursorChange}
@@ -222,7 +253,7 @@ const Editor = ({
             onScroll={handleScroll}
           >
             <ReactMarkdown
-              children={currentNote.content}
+              children={localContent}
               components={{
                 code({ node: _node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');

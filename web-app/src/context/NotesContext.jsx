@@ -4,6 +4,7 @@ import {
   getAllTags,
   createNote,
   deleteNote,
+  updateNote,
 } from '../utils/storage';
 
 /**
@@ -87,6 +88,18 @@ export const NotesProvider = ({ children }) => {
     }
   };
 
+  // Update note
+  const handleUpdateNote = async (noteId, updates) => {
+    try {
+      const updated = await updateNote(noteId, updates);
+      setNotes(prev => prev.map(n => n.id === noteId ? updated : n));
+      return updated;
+    } catch (_err) {
+      setError(_err.message);
+      throw _err;
+    }
+  };
+
   const value = {
     notes,
     tags,
@@ -96,6 +109,7 @@ export const NotesProvider = ({ children }) => {
     filteredNotes,
     handleCreateNote,
     handleDeleteNote,
+    handleUpdateNote,
     setNotes,
     setTags,
     setIsLoading,
