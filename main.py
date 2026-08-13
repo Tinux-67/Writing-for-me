@@ -23,6 +23,7 @@ NOTES_DIR = Path("notes")
 GIT_REPO = Path(".")
 MAX_NOTE_TITLE_LENGTH = 100
 MAX_NOTE_CONTENT_LENGTH = 100000  # 100KB limiet per notitie
+LONG_PRESS_DURATION = 0.6         # seconden voor lang indrukken
 
 # --- Veiligheid ---
 def sanitize_filename(filename: str) -> str:
@@ -40,32 +41,82 @@ def validate_note_content(content: str) -> str:
     return content[:MAX_NOTE_CONTENT_LENGTH]
 
 
+# --- Frontmatter parsing (stdlib only, geen PyYAML) ---
+_FM_OPEN = re.compile(r'^---[ \t]*\r?\n', re.MULTILINE)
+_FM_CLOSE = re.compile(r'\n---[ \t]*\r?\n')
+
+
+def _parse_frontmatter(text: str) -> tuple:
+    """Parseer YAML-stijl frontmatter uit markdown tekst.
+
+    Geeft terug:
+        (metadata_dict, body_text)
+        metadata_dict: keys zijn 'title', 'created', etc.
+        body_text: alles na de sluitende --- (of de volledige tekst als geen frontmatter)
+    """
+    if not text.startswith("---"):
+        return {}, text
+
+    # Zoek de sluitende ---
+    close_match = _FM_CLOSE.search(text, 3)
+    if not close_match:
+        return {}, text
+
+    fm_block = text[3:close_match.start()].strip()
+    body = text[close_match.end():]
+
+    metadata = {}
+    for line in fm_block.splitlines():
+        line = line.strip()
+        if not line or ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        key = key.strip()
+        value = value.strip()
+        if key:
+            metadata[key] = value
+
+    return metadata, body
+
+
+def _encode_frontmatter(metadata: dict, body: str) -> str:
+    """Codeer metadata dict + body naar een markdown bestand met frontmatter."""
+    lines = ["---"]
+    for key, value in metadata.items():
+        lines.append(f"{key}: {value}")
+    lines.append("---")
+    lines.append("")
+    lines.append(body.lstrip("\n"))
+    return "\n".join(lines) + "\n"
+
+
 # --- Notitie Model ---
 class Note:
-    def __init__(self, title: str, content: str, filepath: Path):
+    def __init__(self, title: str, content: str, filepath: Path,
+                 created_at: datetime = None):
         self.title = validate_note_title(title)
         self.content = validate_note_content(content)
         self.filepath = filepath
-        self.created_at = datetime.now()
+        self.created_at = created_at or datetime.now()
         self.updated_at = datetime.now()
 
     def save(self) -> bool:
-        """Sla notitie op en commit naar Git."""
+        """Sla notitie op met frontmatter en commit naar Git."""
         try:
-            # Zorg dat de notes directory bestaat
             NOTES_DIR.mkdir(exist_ok=True)
 
-            # Schrijf bestand
+            metadata = {
+                "title": self.title,
+                "created": self.created_at.isoformat(),
+            }
+            file_content = _encode_frontmatter(metadata, self.content)
+
             with open(self.filepath, "w", encoding="utf-8") as f:
-                f.write(self.content)
+                f.write(file_content)
 
             self.updated_at = datetime.now()
 
-            # Git commit in een thread (voorkom UI freezing)
-            threading.Thread(
-                target=self._git_commit,
-                daemon=True
-            ).start()
+            threading.Thread(target=self._git_commit, daemon=True).start()
             return True
         except Exception as e:
             print(f"Fout bij opslaan: {e}")
@@ -82,21 +133,40 @@ class Note:
 
     @staticmethod
     def load(filepath: Path) -> "Note":
-        """Laad een notitie vanaf schijf."""
+        """Laad een notitie vanaf schijf, inclusief frontmatter parsing."""
         try:
             with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read()
+                raw = f.read()
+
+            metadata, content = _parse_frontmatter(raw)
+
+            # Titel: frontmatter → bestandsnaam stem (achterwaartse compatibiliteit)
+            if "title" in metadata and metadata["title"]:
+                title = metadata["title"]
+            else:
+                title = Path(filepath).stem.replace("_", " ")
+
+            # Aanmaakdatum: frontmatter → bestand mtime (achterwaartse compatibiliteit)
+            if "created" in metadata:
+                try:
+                    created_at = datetime.fromisoformat(metadata["created"])
+                except (ValueError, TypeError):
+                    created_at = datetime.fromtimestamp(os.path.getmtime(filepath))
+            else:
+                created_at = datetime.fromtimestamp(os.path.getmtime(filepath))
+
             return Note(
-                title=Path(filepath).stem.replace("_", " "),
+                title=title,
                 content=content,
-                filepath=filepath
+                filepath=filepath,
+                created_at=created_at,
             )
         except Exception as e:
             print(f"Fout bij laden: {e}")
             return Note(
                 title="Fout bij laden",
                 content=f"Fout: {str(e)}",
-                filepath=filepath
+                filepath=filepath,
             )
 
     def delete(self) -> bool:
@@ -104,12 +174,7 @@ class Note:
         try:
             if self.filepath.exists():
                 self.filepath.unlink()
-
-            # Git commit in een thread
-            threading.Thread(
-                target=self._git_delete_commit,
-                daemon=True
-            ).start()
+            threading.Thread(target=self._git_delete_commit, daemon=True).start()
             return True
         except Exception as e:
             print(f"Fout bij verwijderen: {e}")
@@ -143,7 +208,7 @@ class GitService:
         """Haalt Git commit geschiedenis op."""
         try:
             repo = git.Repo(GIT_REPO)
-            return list(repo.iter_commits(max_count=50))  # Limiteer tot 50 commits
+            return list(repo.iter_commits(max_count=50))
         except Exception as e:
             print(f"Fout bij ophalen Git geschiedenis: {e}")
             return []
@@ -164,16 +229,13 @@ class ExportService:
                         0
                     )
                     return
-
                 html = markdown2.markdown(note.content)
                 output_path = note.filepath.with_suffix(".pdf")
-                HTML(string=f"<html><body>{html}</body></html>").write_pdf(
-                    str(output_path)
-                )
+                HTML(string=f"<html><body>{html}</body></html>").write_pdf(str(output_path))
                 Clock.schedule_once(lambda dt: callback(True, str(output_path)), 0)
             except PermissionError:
                 Clock.schedule_once(
-                    lambda dt: callback(False, "Geen schrijfrechten voor PDF export. Controleer directory permissies."),
+                    lambda dt: callback(False, "Geen schrijfrechten voor PDF export."),
                     0
                 )
             except Exception as e:
@@ -181,7 +243,6 @@ class ExportService:
                     lambda dt: callback(False, f"PDF export mislukt: {str(e)}"),
                     0
                 )
-
         threading.Thread(target=_export, daemon=True).start()
 
     @staticmethod
@@ -196,7 +257,6 @@ class ExportService:
                 Clock.schedule_once(lambda dt: callback(True, str(output_path)), 0)
             except Exception as e:
                 Clock.schedule_once(lambda dt: callback(False, f"HTML export mislukt: {e}"), 0)
-
         threading.Thread(target=_export, daemon=True).start()
 
     @staticmethod
@@ -210,7 +270,6 @@ class ExportService:
                 Clock.schedule_once(lambda dt: callback(True, str(output_path)), 0)
             except Exception as e:
                 Clock.schedule_once(lambda dt: callback(False, f"TXT export mislukt: {e}"), 0)
-
         threading.Thread(target=_export, daemon=True).start()
 
 
@@ -238,14 +297,11 @@ class UIHelpers:
         btn_layout = BoxLayout(spacing=10, size_hint=(1, 0.3))
         btn_yes = Button(text="Ja", background_color=(0, 0.5, 0, 1))
         btn_yes.bind(on_press=lambda btn: (popup.dismiss(), on_confirm()))
-
         btn_no = Button(text="Nee", background_color=(0.5, 0, 0, 1))
         btn_no.bind(on_press=lambda btn: (popup.dismiss(), on_cancel() if on_cancel else None))
-
         btn_layout.add_widget(btn_yes)
         btn_layout.add_widget(btn_no)
         content.add_widget(btn_layout)
-
         popup.content = content
         popup.open()
 
@@ -266,27 +322,68 @@ class NoteListScreen(BoxLayout):
             for md_file in sorted(NOTES_DIR.glob("*.md"), key=os.path.getmtime, reverse=True):
                 self.notes.append(Note.load(md_file))
 
+    def _make_note_button(self, note):
+        """Maak een notitieknop met lang-indruk detectie via Clock.schedule_once.
+
+        Kort indrukken (<0.6s) → notitie openen.
+        Lang indrukken (≥0.6s) → opties popup (bewerken/verwijderen).
+        """
+        btn = Button(
+            text=note.title,
+            size_hint_y=None,
+            height=50,
+            background_color=(0.2, 0.2, 0.2, 1),
+            color=(1, 1, 1, 1),
+        )
+
+        # Gebruik een mutable container zodat de closure de event-reference kan muteren
+        state = {"event": None, "long_pressed": False}
+
+        def on_touch_down(widget, touch):
+            if widget.collide_point(*touch.pos):
+                state["long_pressed"] = False
+                state["event"] = Clock.schedule_once(
+                    lambda dt: _fire_long_press(), LONG_PRESS_DURATION
+                )
+            return False
+
+        def on_touch_up(widget, touch):
+            if state["event"] is not None:
+                state["event"].cancel()
+                state["event"] = None
+            return False
+
+        def _fire_long_press():
+            state["long_pressed"] = True
+            state["event"] = None
+            self.show_note_options(note, btn)
+
+        def on_press(widget):
+            # Onderdruk normale tik als lang indrukken al is geactiveerd
+            if not state["long_pressed"]:
+                self.open_note(note, widget)
+
+        btn.bind(
+            on_touch_down=on_touch_down,
+            on_touch_up=on_touch_up,
+            on_press=on_press,
+        )
+        return btn
+
     def create_ui(self):
         """Maak de UI voor de notitielijst."""
         self.clear_widgets()
 
-        # Titel
         title = Label(
             text="Mijn Notities",
             font_size=24,
             color=(1, 1, 1, 1),
-            size_hint=(1, 0.1)
+            size_hint=(1, 0.1),
         )
         self.add_widget(title)
 
-        # Notitielijst
         scroll = ScrollView()
-        grid = GridLayout(
-            cols=1,
-            spacing=10,
-            size_hint_y=None,
-            padding=10
-        )
+        grid = GridLayout(cols=1, spacing=10, size_hint_y=None, padding=10)
         grid.bind(minimum_height=grid.setter("height"))
 
         if not self.notes:
@@ -294,41 +391,29 @@ class NoteListScreen(BoxLayout):
                 text="Geen notities gevonden. Maak een nieuwe notitie!",
                 color=(0.7, 0.7, 0.7, 1),
                 size_hint_y=None,
-                height=50
+                height=50,
             ))
         else:
             for note in self.notes:
-                btn = Button(
-                    text=note.title,
-                    size_hint_y=None,
-                    height=50,
-                    background_color=(0.2, 0.2, 0.2, 1),
-                    color=(1, 1, 1, 1)
-                )
-                btn.bind(
-                    on_press=partial(self.open_note, note),
-                    on_long_press=partial(self.show_note_options, note)
-                )
-                grid.add_widget(btn)
+                grid.add_widget(self._make_note_button(note))
 
         scroll.add_widget(grid)
         self.add_widget(scroll)
 
-        # Knoppen
         btn_layout = BoxLayout(size_hint=(1, 0.1), spacing=10, padding=10)
         btn_new = Button(
             text="Nieuwe Notitie",
             background_color=(0, 0.5, 0, 1),
-            color=(1, 1, 1, 1)
+            color=(1, 1, 1, 1),
         )
         btn_new.bind(on_press=self.new_note)
 
         btn_history = Button(
             text="Git Geschiedenis",
             background_color=(0.5, 0, 0.5, 1),
-            color=(1, 1, 1, 1)
+            color=(1, 1, 1, 1),
         )
-        btn_history.bind(on_press=lambda btn: setattr(self.parent, 'current', 'history'))
+        btn_history.bind(on_press=lambda btn: setattr(self.parent, "current", "history"))
 
         btn_layout.add_widget(btn_new)
         btn_layout.add_widget(btn_history)
@@ -340,7 +425,7 @@ class NoteListScreen(BoxLayout):
         self.parent.current = "editor"
 
     def show_note_options(self, note, instance):
-        """Toon opties voor een notitie (lang druk)."""
+        """Toon opties voor een notitie (lang indrukken)."""
         content = BoxLayout(orientation="vertical", spacing=10, padding=10)
         popup = Popup(title=f"Opties voor: {note.title}", size_hint=(0.8, 0.4))
 
@@ -354,7 +439,7 @@ class NoteListScreen(BoxLayout):
                 "Verwijderen",
                 f"Weet je zeker dat je '{note.title}' wilt verwijderen?",
                 lambda: self.delete_note(note),
-                lambda: None
+                lambda: None,
             )
         ))
 
@@ -380,10 +465,10 @@ class NoteListScreen(BoxLayout):
         new_note = Note(
             title=f"Notitie {timestamp}",
             content="# Nieuwe Notitie\n\nSchrijf hier in Markdown...",
-            filepath=filepath
+            filepath=filepath,
         )
         if new_note.save():
-            self.notes.insert(0, new_note)  # Voeg toe aan begin van lijst
+            self.notes.insert(0, new_note)
             self.create_ui()
             self.open_note(new_note, None)
         else:
@@ -401,99 +486,53 @@ class NoteEditorScreen(BoxLayout):
         """Maak de UI voor de notitie-editor."""
         self.clear_widgets()
 
-        # Titel
         self.title_input = TextInput(
             hint_text="Titel",
             size_hint=(1, 0.1),
             background_color=(0.2, 0.2, 0.2, 1),
             foreground_color=(1, 1, 1, 1),
-            multiline=False
+            multiline=False,
         )
         self.add_widget(self.title_input)
 
-        # Markdown editor
         self.content_input = TextInput(
             hint_text="Schrijf hier in Markdown...\n\nBijvoorbeeld:\n# Titel\n\n- Lijstitem\n\n**Vet** of *cursief*",
             multiline=True,
             size_hint=(1, 0.7),
             background_color=(0.1, 0.1, 0.1, 1),
-            foreground_color=(1, 1, 1, 1)
+            foreground_color=(1, 1, 1, 1),
         )
         self.add_widget(self.content_input)
 
         # Markdown toolbar
         toolbar = BoxLayout(size_hint=(1, 0.1), spacing=5, padding=5)
-        toolbar.add_widget(Button(
-            text="B",
-            size_hint=(None, None),
-            size=(40, 40),
-            background_color=(0.3, 0.3, 0.3, 1),
-            on_press=lambda btn: self.insert_markdown("**vet**")
-        ))
-        toolbar.add_widget(Button(
-            text="I",
-            size_hint=(None, None),
-            size=(40, 40),
-            background_color=(0.3, 0.3, 0.3, 1),
-            on_press=lambda btn: self.insert_markdown("_cursief_")
-        ))
-        toolbar.add_widget(Button(
-            text="H1",
-            size_hint=(None, None),
-            size=(40, 40),
-            background_color=(0.3, 0.3, 0.3, 1),
-            on_press=lambda btn: self.insert_markdown("# Titel")
-        ))
-        toolbar.add_widget(Button(
-            text="List",
-            size_hint=(None, None),
-            size=(40, 40),
-            background_color=(0.3, 0.3, 0.3, 1),
-            on_press=lambda btn: self.insert_markdown("- Lijstitem\n")
-        ))
-        toolbar.add_widget(Button(
-            text="Link",
-            size_hint=(None, None),
-            size=(40, 40),
-            background_color=(0.3, 0.3, 0.3, 1),
-            on_press=lambda btn: self.insert_markdown("[tekst](url)")
-        ))
+        for label, text in [
+            ("B", "**vet**"),
+            ("I", "_cursief_"),
+            ("H1", "# Titel"),
+            ("List", "- Lijstitem\n"),
+            ("Link", "[tekst](url)"),
+        ]:
+            toolbar.add_widget(Button(
+                text=label,
+                size_hint=(None, None),
+                size=(40, 40),
+                background_color=(0.3, 0.3, 0.3, 1),
+                on_press=lambda btn, t=text: self.insert_markdown(t),
+            ))
         self.add_widget(toolbar)
 
-        # Knoppen
         btn_layout = BoxLayout(size_hint=(1, 0.1), spacing=10, padding=10)
-        btn_save = Button(
-            text="Opslaan",
-            background_color=(0, 0.5, 0, 1),
-            color=(1, 1, 1, 1)
-        )
+        btn_save = Button(text="Opslaan", background_color=(0, 0.5, 0, 1), color=(1, 1, 1, 1))
         btn_save.bind(on_press=self.save_note)
-
-        btn_preview = Button(
-            text="Voorvertoning",
-            background_color=(0, 0, 0.5, 1),
-            color=(1, 1, 1, 1)
-        )
+        btn_preview = Button(text="Voorvertoning", background_color=(0, 0, 0.5, 1), color=(1, 1, 1, 1))
         btn_preview.bind(on_press=self.show_preview)
-
-        btn_export = Button(
-            text="Export",
-            background_color=(0.5, 0, 0.5, 1),
-            color=(1, 1, 1, 1)
-        )
+        btn_export = Button(text="Export", background_color=(0.5, 0, 0.5, 1), color=(1, 1, 1, 1))
         btn_export.bind(on_press=self.show_export_options)
-
-        btn_back = Button(
-            text="Terug",
-            background_color=(0.5, 0, 0, 1),
-            color=(1, 1, 1, 1)
-        )
+        btn_back = Button(text="Terug", background_color=(0.5, 0, 0, 1), color=(1, 1, 1, 1))
         btn_back.bind(on_press=self.go_back)
-
-        btn_layout.add_widget(btn_save)
-        btn_layout.add_widget(btn_preview)
-        btn_layout.add_widget(btn_export)
-        btn_layout.add_widget(btn_back)
+        for b in [btn_save, btn_preview, btn_export, btn_back]:
+            btn_layout.add_widget(b)
         self.add_widget(btn_layout)
 
     def load_note(self, note):
@@ -505,19 +544,16 @@ class NoteEditorScreen(BoxLayout):
     def insert_markdown(self, markdown_text):
         """Voeg Markdown-sjabloon in op de cursorpositie."""
         if self.content_input.cursor_pos():
-            # Voeg tekst in op cursorpositie
             current_text = self.content_input.text
             cursor_pos = self.content_input.cursor_pos()[0]
             new_text = current_text[:cursor_pos] + markdown_text + current_text[cursor_pos:]
             self.content_input.text = new_text
-            # Verplaats cursor naar einde van ingevoegde tekst
             self.content_input.cursor = (cursor_pos + len(markdown_text), 0)
         else:
-            # Voeg toe aan einde
             self.content_input.text += markdown_text
 
     def save_note(self, instance):
-        """Sla de huidige notitie op."""
+        """Sla de huidige notitie op. Titel wordt gepersisteerd via frontmatter."""
         if not self.current_note:
             UIHelpers.show_message("Fout", "Geen notitie geladen!")
             return
@@ -527,7 +563,6 @@ class NoteEditorScreen(BoxLayout):
 
         if self.current_note.save():
             UIHelpers.show_message("Succes", "Notitie opgeslagen!")
-            # Vernieuw notitielijst
             self.parent.get_screen("list").load_notes()
             self.parent.get_screen("list").create_ui()
         else:
@@ -537,7 +572,6 @@ class NoteEditorScreen(BoxLayout):
         """Toon een voorvertoning van de Markdown."""
         if not self.current_note:
             return
-
         try:
             html = markdown2.markdown(self.content_input.text)
             popup = Popup(title="Voorvertoning", size_hint=(0.9, 0.8))
@@ -548,7 +582,7 @@ class NoteEditorScreen(BoxLayout):
                 height=1000,
                 color=(0, 0, 0, 1),
                 markup=True,
-                text_size=(Window.width * 0.8, None)
+                text_size=(Window.width * 0.8, None),
             )
             label.bind(texture_size=label.setter("size"))
             scroll.add_widget(label)
@@ -575,19 +609,17 @@ class NoteEditorScreen(BoxLayout):
         btn_pdf = Button(text="Export naar PDF", background_color=(0.5, 0, 0, 1))
         btn_pdf.bind(on_press=lambda btn: (
             popup.dismiss(),
-            ExportService.export_to_pdf(self.current_note, export_callback)
+            ExportService.export_to_pdf(self.current_note, export_callback),
         ))
-
         btn_html = Button(text="Export naar HTML", background_color=(0, 0.5, 0, 1))
         btn_html.bind(on_press=lambda btn: (
             popup.dismiss(),
-            ExportService.export_to_html(self.current_note, export_callback)
+            ExportService.export_to_html(self.current_note, export_callback),
         ))
-
         btn_txt = Button(text="Export naar TXT", background_color=(0, 0, 0.5, 1))
         btn_txt.bind(on_press=lambda btn: (
             popup.dismiss(),
-            ExportService.export_to_txt(self.current_note, export_callback)
+            ExportService.export_to_txt(self.current_note, export_callback),
         ))
 
         content.add_widget(btn_pdf)
@@ -617,23 +649,16 @@ class GitHistoryScreen(BoxLayout):
         """Maak de UI voor Git geschiedenis."""
         self.clear_widgets()
 
-        # Titel
         title = Label(
             text="Git Geschiedenis",
             font_size=24,
             color=(1, 1, 1, 1),
-            size_hint=(1, 0.1)
+            size_hint=(1, 0.1),
         )
         self.add_widget(title)
 
-        # Commit lijst
         scroll = ScrollView()
-        grid = GridLayout(
-            cols=1,
-            spacing=10,
-            size_hint_y=None,
-            padding=10
-        )
+        grid = GridLayout(cols=1, spacing=10, size_hint_y=None, padding=10)
         grid.bind(minimum_height=grid.setter("height"))
 
         if not self.commits:
@@ -641,7 +666,7 @@ class GitHistoryScreen(BoxLayout):
                 text="Geen commits gevonden.",
                 color=(0.7, 0.7, 0.7, 1),
                 size_hint_y=None,
-                height=50
+                height=50,
             ))
         else:
             for commit in self.commits:
@@ -654,19 +679,18 @@ class GitHistoryScreen(BoxLayout):
                     color=(1, 1, 1, 1),
                     halign="left",
                     valign="middle",
-                    text_size=(Window.width * 0.8, None)
+                    text_size=(Window.width * 0.8, None),
                 )
                 grid.add_widget(btn)
 
         scroll.add_widget(grid)
         self.add_widget(scroll)
 
-        # Terug knop
         btn_back = Button(
             text="Terug",
             size_hint=(1, 0.1),
             background_color=(0.5, 0, 0, 1),
-            color=(1, 1, 1, 1)
+            color=(1, 1, 1, 1),
         )
         btn_back.bind(on_press=self.go_back)
         self.add_widget(btn_back)
@@ -679,28 +703,23 @@ class GitHistoryScreen(BoxLayout):
 # --- Hoofd App ---
 class WritingApp(App):
     def build(self):
-        Window.clearcolor = (0.1, 0.1, 0.1, 1)  # Donker thema
+        Window.clearcolor = (0.1, 0.1, 0.1, 1)
         self.title = "Writing for Me"
 
-        # Initialiseer Git repo
         GitService.init_repo()
 
-        # Screen manager
         self.screen_manager = ScreenManager()
 
-        # Notitielijst scherm
         note_list = NoteListScreen()
         screen_list = Screen(name="list")
         screen_list.add_widget(note_list)
         self.screen_manager.add_widget(screen_list)
 
-        # Notitie editor scherm
         note_editor = NoteEditorScreen()
         screen_editor = Screen(name="editor")
         screen_editor.add_widget(note_editor)
         self.screen_manager.add_widget(screen_editor)
 
-        # Git geschiedenis scherm
         git_history = GitHistoryScreen()
         screen_history = Screen(name="history")
         screen_history.add_widget(git_history)
