@@ -3,11 +3,15 @@ name: CI
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/dependabot.yml'
   pull_request:
     branches: [ main ]
     paths-ignore:
       - '**.md'
       - '.github/dependabot.yml'
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -26,7 +30,7 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
 
       - name: Cache node_modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             node_modules
@@ -58,7 +62,7 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
 
       - name: Cache node_modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             node_modules
@@ -71,4 +75,4 @@ jobs:
         run: npm install --no-fund --legacy-peer-deps
 
       - name: Test
-        run: npm run test || true
+        run: npm run test
