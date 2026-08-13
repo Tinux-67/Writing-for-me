@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 
@@ -26,7 +27,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           syntax: ['react-markdown', 'highlight.js', 'prism'],
-          utils: ['crypto-js', 'uuid', 'localforage', 'jszip', 'file-saver'],
+          utils: ['uuid', 'localforage', 'jszip', 'file-saver'],
         },
       },
     },
@@ -46,6 +47,15 @@ export default defineConfig({
     port: process.env.PORT || 4173,
     open: true,
     host: '0.0.0.0',
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.js'],
+    exclude: [...configDefaults.exclude],
+    coverage: {
+      reporter: ['text', 'lcov'],
+    },
   },
   resolve: {
     alias: {

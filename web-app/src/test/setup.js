@@ -44,32 +44,8 @@ Object.defineProperty(window, 'indexedDB', {
   value: indexedDBMock
 });
 
-// Mock crypto
-const cryptoMock = {
-  getRandomValues: (array) => {
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-    return array;
-  },
-  subtle: {
-    digest: async (algorithm, data) => {
-      // Simple mock for SHA-256
-      const hash = new Uint8Array(32);
-      for (let i = 0; i < hash.length; i++) {
-        hash[i] = Math.floor(Math.random() * 256);
-      }
-      return hash;
-    },
-    importKey: async () => ({}),
-    deriveKey: async () => ({}),
-    exportKey: async () => new Uint8Array(32)
-  }
-};
-
-Object.defineProperty(window, 'crypto', {
-  value: cryptoMock
-});
+// Note: window.crypto.subtle is provided by jsdom backed by Node.js WebCrypto.
+// No manual mock needed — real AES-GCM encryption works in the test environment.
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -99,6 +75,5 @@ afterEach(() => {
 
 export default {
   localStorageMock,
-  indexedDBMock,
-  cryptoMock
+  indexedDBMock
 };
