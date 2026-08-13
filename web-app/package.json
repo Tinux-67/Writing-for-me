@@ -46,7 +46,19 @@
     "jsdom": "^26.0.0",
     "vitest": "^4.1.10"
   },
-  "keywords": ["markdown","notes","web-app","cross-platform","secure","export","encryption"],
+  "keywords": [
+    "markdown",
+    "notes",
+    "web-app",
+    "cross-platform",
+    "secure",
+    "export",
+    "encryption"
+  ],
   "author": "Tinux-67",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.12.0",
+    "npm": ">=10.0.0"
+  }
 }
