@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark, atomLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   wrapSelection,
   createList,
@@ -76,7 +76,7 @@ const Editor = ({
 
   // Get syntax highlighter style based on theme
   const getSyntaxStyle = (theme) => {
-    return theme === 'dark' ? atomDark : atomLight;
+    return theme === 'dark' ? atomDark : oneLight;
   };
 
   // Calculate stats
