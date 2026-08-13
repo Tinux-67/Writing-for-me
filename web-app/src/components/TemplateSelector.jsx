@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   getAllTemplates,
-  getTemplatesByCategory,
-  getAllCategories,
-  insertTemplateAtCursor
+  getAllCategories
 } from '../utils/templates';
 import './../styles/template-selector.css';
 
