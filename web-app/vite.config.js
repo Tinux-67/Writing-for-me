@@ -8,11 +8,9 @@ export default defineConfig({
     react(),
   ],
   build: {
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-      },
+    minify: 'esbuild',
+    esbuild: {
+      drop: ['console', 'debugger'],
     },
     sourcemap: false,
     rollupOptions: {
