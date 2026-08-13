@@ -438,7 +438,7 @@ async function generatePDFContent(title, markdown) {
   const { PDFDocument, rgb } = await import('pdf-lib');
   
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([600, 800]);
+  let page = pdfDoc.addPage([600, 800]);
   
   const { height } = page.getSize();
   let y = height - 50;
@@ -548,7 +548,7 @@ export async function exportAllNotes(password = null) {
     for (const note of notes) {
       let content = note.content;
       
-      // Decrypt if encrypted
+      // Decrypt if encrypted — content is a let so re-assignment is valid
       if (note.isEncrypted && password) {
         content = await decryptContent(content, password, note.salt, note.iv);
       } else if (note.isEncrypted) {
