@@ -1,18 +1,11 @@
 import { defineConfig } from 'vite';
 import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   base: '/',
   plugins: [
     react(),
-    visualizer({
-      filename: './dist/stats.html',
-      open: false,
-      gzipSize: true,
-      brotliSize: true,
-    }),
   ],
   build: {
     minify: 'terser',
@@ -24,10 +17,13 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          syntax: ['react-markdown', 'highlight.js', 'prism'],
-          utils: ['uuid', 'localforage', 'jszip', 'file-saver'],
+        // manualChunks as function — required by Vite 8 / rolldown
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (['react', 'react-dom', 'react-router-dom'].some(p => id.includes(p))) return 'vendor';
+            if (['react-markdown', 'react-syntax-highlighter', 'highlight.js'].some(p => id.includes(p))) return 'syntax';
+            if (['uuid', 'localforage', 'jszip', 'file-saver'].some(p => id.includes(p))) return 'utils';
+          }
         },
       },
     },
