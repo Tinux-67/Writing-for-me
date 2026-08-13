@@ -105,7 +105,7 @@ describe('Templates Plugin', () => {
       
       const result = insertTemplateAtCursor(currentContent, templateContent, cursorPosition);
       
-      expect(result.content).toBe('Hello---\n\n World');
+      expect(result.content).toBe('Hello\n\n---\n\n World');
       expect(result.cursorPosition).toBe(5 + templateContent.length);
     });
 
