@@ -5,27 +5,13 @@
 
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-// Configure marked
-marked.setOptions({
+// Configure marked (v11+ API — only breaks and gfm are valid options here;
+// syntax highlighting is handled by react-syntax-highlighter in JSX components)
+marked.use({
   breaks: true,
   gfm: true,
-  headerIds: true,
-  headerPrefix: 'note-',
-  highlight: function(code, lang) {
-    if (lang && Prism.languages[lang]) {
-      return Prism.highlight(code, Prism.languages[lang], lang);
-    }
-    return code;
-  },
-  langPrefix: 'language-',
-  mangle: false,
-  sanitize: false, // We handle sanitization with DOMPurify
-  smartLists: true,
-  smartypants: true,
-  xhtml: false
 });
 
 /**
