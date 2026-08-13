@@ -129,7 +129,7 @@ export async function encryptContent(content, password) {
       salt,
       iv
     };
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Failed to encrypt content');
   }
 }
@@ -157,7 +157,7 @@ export async function decryptContent(encrypted, password, salt, iv) {
     );
 
     return new TextDecoder().decode(plaintext);
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Failed to decrypt content. Wrong password or corrupted data.');
   }
 }
