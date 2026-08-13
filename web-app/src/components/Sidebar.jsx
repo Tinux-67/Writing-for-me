@@ -1,4 +1,4 @@
-{ useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotes } from '../context/NotesContext';
 import { getAllTemplates } from '../utils/templates';
