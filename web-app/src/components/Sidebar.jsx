@@ -21,8 +21,8 @@ const Sidebar = ({
   onNoteSelect
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { notes, tags, filteredNotes, handleCreateNote, handleDeleteNote } = useNotes();
+  const _location = useLocation();
+  const { tags, filteredNotes, handleCreateNote, handleDeleteNote } = useNotes();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');

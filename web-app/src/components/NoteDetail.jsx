@@ -22,7 +22,7 @@ const NoteDetail = ({ currentNoteId, onNoteSelect }) => {
   }, [id, currentNoteId, notes]);
 
   // Handle note selection
-  const handleNoteSelect = (noteId) => {
+  const _handleNoteSelect = (noteId) => {
     onNoteSelect(noteId);
     navigate(`/note/${noteId}`);
   };

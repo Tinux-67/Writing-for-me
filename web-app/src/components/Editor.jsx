@@ -29,7 +29,7 @@ const Editor = ({
 }) => {
   const { notes, handleCreateNote } = useNotes();
   const [activeTab, setActiveTab] = useState('edit');
-  const [cursorPosition, setCursorPosition] = useState(0);
+  const [, setCursorPosition] = useState(0);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const textareaRef = useRef(null);
   const previewRef = useRef(null);
@@ -37,13 +37,8 @@ const Editor = ({
   // Get current note
   const currentNote = notes.find(note => note.id === currentNoteId);
 
-  // Handle note selection
-  const handleNoteSelect = (noteId) => {
-    onNoteSelect(noteId);
-  };
-
-  // Handle text changes
-  const handleChange = (e) => {
+  // Handle text changes (placeholder — content updates managed by context)
+  const handleChange = (_e) => {
     // This will be handled by the parent or context
   };
 
@@ -89,8 +84,8 @@ const Editor = ({
   const charCount = currentNote ? getCharacterCount(currentNote.content) : 0;
   const readingTime = currentNote ? getReadingTime(currentNote.content) : 0;
 
-  // Filter notes for selection
-  const filteredNotes = notes.filter(note => {
+  // Filter notes for selection (used by template/note-picker UI if rendered)
+  const _filteredNotes = notes.filter(note => {
     if (currentTag) {
       if (!note.tags || !note.tags.includes(currentTag)) return false;
     }
@@ -229,7 +224,7 @@ const Editor = ({
             <ReactMarkdown
               children={currentNote.content}
               components={{
-                code({ node, inline, className, children, ...props }) {
+                code({ node: _node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline && match ? (
                     <SyntaxHighlighter
