@@ -27,8 +27,10 @@ const App = () => {
       const notes = await exportAllNotes();
       const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
       saveAs(blob, 'notes-export.json');
-    } catch (_err) {
-      // Error handled
+    } catch (err) {
+      console.error('Export failed:', err);
+      // TODO: surface a toast/snackbar notification to the user
+      alert('Export failed. Please try again.');
     }
   };
 
