@@ -1,5 +1,13 @@
 # Writing for Me
 
+[![CI](https://github.com/Tinux-67/Writing-for-me/actions/workflows/ci.yml/badge.svg)](https://github.com/Tinux-67/Writing-for-me/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)](https://vitejs.dev)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776ab?logo=python&logoColor=white)](https://python.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Tinux-67/Writing-for-me/pulls)
+
 A **secure, cross-platform markdown notes application** with **version control (Git)** and **export functionality** (PDF, HTML, TXT). Available as both a **Python/Kivy mobile app** and a **modern web app**.
 
 ---
@@ -373,7 +381,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - [Vite](https://vitejs.dev/) - Build tool
 - [React Markdown](https://github.com/remarkjs/react-markdown) - Markdown rendering
 - [Prism.js](https://prismjs.com/) - Syntax highlighting
-- [CryptoJS](https://github.com/brix/crypto-js) - Encryption utilities
+- [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API) - AES-GCM encryption (native browser)
+- [DOMPurify](https://github.com/cure53/DOMPurify) - HTML sanitization
 - [localForage](https://localforage.github.io/localForage/) - Storage wrapper
 - [PDF-Lib](https://pdf-lib.js.org/) - PDF generation
 - [FileSaver.js](https://github.com/eligrey/FileSaver.js/) - File download
