@@ -130,7 +130,8 @@ android.entrypoint = org.kivy.android.PythonActivity
 # android.gradle_dependencies =
 
 # (str) python-for-android branch to use
-p4a.branch = stable
+# Use specific release tag: has AAB support + libthorvg fix
+p4a.branch = master
 
 # (str) OUYA Console category. Should be one of GAME or APP
 # If you leave this blank, OUYA support will not be enabled
