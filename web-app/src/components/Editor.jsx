@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -48,6 +49,32 @@ const Editor = ({
   const currentNote = notes.find(note => note.id === currentNoteId);
   const [localContent, setLocalContent] = useState(currentNote?.content ?? '');
   const [title, setTitle] = useState(currentNote?.title ?? '');
+  const [tagInput, setTagInput] = useState('');
+
+  const { id: urlNoteId } = useParams();
+
+  // Sync currentNoteId from URL param (handles direct navigation to /note/:id)
+  useEffect(() => {
+    if (urlNoteId && urlNoteId !== currentNoteId) {
+      onNoteSelect(urlNoteId);
+    }
+  }, [urlNoteId]);
+
+  // Tag handlers
+  const handleAddTag = async () => {
+    const trimmed = tagInput.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!trimmed || !currentNote) return;
+    const existing = currentNote.tags || [];
+    if (existing.includes(trimmed)) { setTagInput(''); return; }
+    await handleUpdateNote(currentNoteId, { tags: [...existing, trimmed] });
+    setTagInput('');
+  };
+
+  const handleRemoveTag = async (tag) => {
+    if (!currentNote) return;
+    const existing = currentNote.tags || [];
+    await handleUpdateNote(currentNoteId, { tags: existing.filter(t => t !== tag) });
+  };
 
   useEffect(() => {
     setLocalContent(currentNote?.content ?? '');
@@ -289,6 +316,34 @@ const Editor = ({
           onChange={handleTitleChange}
           placeholder="Note title..."
           aria-label="Note title"
+        />
+      </div>
+
+      {/* Tag bar */}
+      <div className="editor-tags-bar">
+        <div className="editor-tags-list">
+          {(currentNote.tags || []).map(tag => (
+            <span key={tag} className="editor-tag-badge">
+              #{tag}
+              <button
+                className="editor-tag-remove"
+                onClick={() => handleRemoveTag(tag)}
+                aria-label={`Remove tag ${tag}`}
+              >×</button>
+            </span>
+          ))}
+        </div>
+        <input
+          type="text"
+          className="editor-tag-input"
+          value={tagInput}
+          onChange={e => setTagInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); }
+            if (e.key === ',' ) { e.preventDefault(); handleAddTag(); }
+          }}
+          placeholder="Add tag (Enter or comma)..."
+          aria-label="Add tag"
         />
       </div>
 

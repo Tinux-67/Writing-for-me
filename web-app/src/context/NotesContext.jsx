@@ -93,6 +93,11 @@ export const NotesProvider = ({ children }) => {
     try {
       const updated = await updateNote(noteId, updates);
       setNotes(prev => prev.map(n => n.id === noteId ? updated : n));
+      // Refresh tags list whenever tags are changed
+      if (updates.tags !== undefined) {
+        const allTags = await getAllTags();
+        setTags(allTags);
+      }
       return updated;
     } catch (_err) {
       setError(_err.message);
