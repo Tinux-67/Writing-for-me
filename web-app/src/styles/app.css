@@ -983,3 +983,31 @@
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
 }
+
+/* ===== Editor Title Bar ===== */
+.editor-title-bar {
+  padding: 0 16px;
+  margin-bottom: 8px;
+}
+
+.editor-title-input {
+  width: 100%;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-color, inherit);
+  padding: 8px 0;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.editor-title-input:focus {
+  border-bottom-color: var(--color-primary, #4a90d9);
+}
+
+.editor-title-input::placeholder {
+  opacity: 0.4;
+}
