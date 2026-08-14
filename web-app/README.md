@@ -65,6 +65,30 @@ A **secure, cross-platform** markdown notes web application with **intuitive UX*
    After `VITE ready` appears, open `http://localhost:3030` manually.
    (Auto-open is disabled; port 3030 avoids conflict with open-webui on 3000.)
 
+### One-Click Start (Linux)
+
+A convenience script starts the dev server, waits until it is reachable, opens
+the browser, and cleans up on `Ctrl+C`:
+
+```bash
+chmod +x scripts/dev.sh
+./scripts/dev.sh            # default port 3030
+PORT=3040 ./scripts/dev.sh  # override port
+```
+
+For a desktop/dock launcher, install the included `.desktop` file:
+
+```bash
+# Point the Exec line at the absolute path to dev.sh, then:
+chmod +x scripts/writing-for-me.desktop
+mkdir -p ~/.local/share/applications
+cp scripts/writing-for-me.desktop ~/.local/share/applications/
+update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
+```
+
+"Writing for Me" then appears in your application menu; pin it to your dock for
+a one-click start.
+
 ### Production Build
 
 ```bash
