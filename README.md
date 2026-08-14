@@ -7,7 +7,7 @@
 [![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)](https://vitejs.dev)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776ab?logo=python&logoColor=white)](https://python.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Tinux-67/Writing-for-me/pulls)
-
+[![Build Android APK](https://github.com/Tinux-67/Writing-for-me/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Tinux-67/Writing-for-me/actions/workflows/build-apk.yml)
 A **secure, cross-platform markdown notes application** with **version control (Git)** and **export functionality** (PDF, HTML, TXT). Available as both a **Python/Kivy mobile app** and a **modern web app**.
 
 ---
