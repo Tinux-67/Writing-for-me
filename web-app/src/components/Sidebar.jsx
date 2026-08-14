@@ -26,7 +26,7 @@ const Sidebar = ({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');
-  const [showTagsDropdown, setShowTagsDropdown] = useState(false);
+  const [_showTagsDropdown, _setShowTagsDropdown] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -51,7 +51,7 @@ const Sidebar = ({
       if (e.key === 'Escape') {
         setIsSearchFocused(false);
         setShowNewNoteModal(false);
-        setShowTagsDropdown(false);
+        _setShowTagsDropdown(false);
         setShowTemplateDropdown(false);
       }
     };
@@ -268,3 +268,4 @@ const Sidebar = ({
 };
 
 export default Sidebar;
+
