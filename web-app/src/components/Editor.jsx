@@ -39,7 +39,7 @@ const Editor = ({
   showToolbar = true,
   showStats = true
 }) => {
-  const { notes, handleCreateNote, handleUpdateNote } = useNotes();
+  const { notes, tags: allTags, handleCreateNote, handleUpdateNote } = useNotes();
   const [activeTab, setActiveTab] = useState('edit');
   const [, setCursorPosition] = useState(0);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -50,6 +50,7 @@ const Editor = ({
   const [localContent, setLocalContent] = useState(currentNote?.content ?? '');
   const [title, setTitle] = useState(currentNote?.title ?? '');
   const [tagInput, setTagInput] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
 
   const { id: urlNoteId } = useParams();
 
@@ -372,7 +373,7 @@ const Editor = ({
         />
       </div>
 
-      {/* Tag bar */}
+      {/* Tag bar with autocomplete */}
       <div className="editor-tags-bar">
         <div className="editor-tags-list">
           {(currentNote.tags || []).map(tag => (
@@ -386,18 +387,50 @@ const Editor = ({
             </span>
           ))}
         </div>
-        <input
-          type="text"
-          className="editor-tag-input"
-          value={tagInput}
-          onChange={e => setTagInput(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); }
-            if (e.key === ',' ) { e.preventDefault(); handleAddTag(); }
-          }}
-          placeholder="Add tag (Enter or comma)..."
-          aria-label="Add tag"
-        />
+        <div className="editor-tag-input-wrapper">
+          <input
+            type="text"
+            className="editor-tag-input"
+            value={tagInput}
+            onChange={e => { setTagInput(e.target.value); setShowTagSuggestions(true); }}
+            onFocus={() => setShowTagSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowTagSuggestions(false), 150)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); }
+              if (e.key === ',')     { e.preventDefault(); handleAddTag(); }
+              if (e.key === 'Escape') setShowTagSuggestions(false);
+            }}
+            placeholder="Add tag..."
+            aria-label="Add tag"
+          />
+          {showTagSuggestions && (() => {
+            const existing = currentNote.tags || [];
+            const q = tagInput.trim().toLowerCase();
+            const suggestions = allTags.filter(t =>
+              !existing.includes(t) && (q === '' || t.includes(q))
+            );
+            return suggestions.length > 0 ? (
+              <ul className="editor-tag-suggestions">
+                {suggestions.map(t => (
+                  <li key={t}>
+                    <button
+                      className="editor-tag-suggestion-btn"
+                      onMouseDown={e => {
+                        e.preventDefault();
+                        const currentTags = currentNote.tags || [];
+                        if (!currentTags.includes(t)) {
+                          handleUpdateNote(currentNoteId, { tags: [...currentTags, t] });
+                        }
+                        setTagInput('');
+                        setShowTagSuggestions(false);
+                      }}
+                    >#{t}</button>
+                  </li>
+                ))}
+              </ul>
+            ) : null;
+          })()}
+        </div>
       </div>
 
       <div className={`editor-content ${activeTab}`}>
@@ -464,3 +497,4 @@ const Editor = ({
 };
 
 export default Editor;
+
