@@ -1688,3 +1688,42 @@
 .tag-manager-btn.danger:hover {
   background: #dc2626;
 }
+
+/* ===== Note item layout fix — override old display:flex rule ===== */
+/* Old CSS had .note-item { display: flex } which stacked children horizontally.
+   New design needs block layout so header/preview/date stack vertically. */
+.note-item {
+  display: block !important;
+  overflow: hidden;
+}
+
+.note-item .note-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+  overflow: hidden;
+}
+
+.note-item .note-title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.note-item .note-preview-text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.note-item .note-date {
+  display: block;
+  white-space: nowrap;
+}
