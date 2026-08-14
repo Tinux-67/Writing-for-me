@@ -35,7 +35,7 @@ npm install
 npm run dev
 ```
 
-**Access:** Open `http://localhost:3000` in your browser.
+**Access:** Open `http://localhost:3030` in your browser.
 
 [→ Web App Documentation](web-app/README.md)
 
