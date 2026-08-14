@@ -20,6 +20,34 @@ PORT="${PORT:-3030}"
 
 cd "$APP_DIR"
 
+# --- Load nvm so the project's Node version (.nvmrc = 20) is used. ----------
+# Scripts run in a non-interactive, non-login shell that does NOT source
+# ~/.bashrc, so nvm (and thus Node 20) would be missing and the system Node
+# (often 18.x) would be used instead, causing Vite/rolldown to crash with
+# "styleText" errors. Load nvm explicitly when available.
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$NVM_DIR/nvm.sh"
+  # Use the version pinned in .nvmrc if present (installs it if missing).
+  if nvm use >/dev/null 2>&1; then
+    :
+  else
+    echo "→ Node version from .nvmrc not installed; installing ..."
+    nvm install
+    nvm use >/dev/null 2>&1 || true
+  fi
+fi
+
+# --- Verify Node version (project requires >= 20.12.0, see .nvmrc). --------
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+if [ "${NODE_MAJOR:-0}" -lt 20 ]; then
+  echo "❌ Node $(node -v 2>/dev/null || echo 'unknown') gevonden; dit project vereist Node >= 20.12.0."
+  echo "   Installeer Node 20 (bv. via 'nvm install 20' of NodeSource) en herstart het script."
+  exit 1
+fi
+echo "→ Node $(node -v) / npm $(npm -v)"
+
 # Ensure dependencies are installed (idempotent: skipped if node_modules exists).
 if [ ! -d node_modules ]; then
   echo "→ node_modules not found, running npm install ..."
