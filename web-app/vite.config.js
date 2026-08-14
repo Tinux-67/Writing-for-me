@@ -28,13 +28,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
   },
   server: {
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 3030,  // 3000 is taken by open-webui Docker container
     open: false,   // Don't auto-open — browser fires before dep optimization finishes → 500
     cors: true,
     host: '0.0.0.0',
     strictPort: true,
     hmr: {
-      clientPort: process.env.PORT || 3000,
+      clientPort: process.env.PORT || 3030,
     },
     // Pre-warm entry modules so the first request never hits a cold 500
     warmup: {
@@ -64,7 +64,7 @@ export default defineConfig({
     ],
   },
   preview: {
-    port: process.env.PORT || 4173,
+    port: process.env.PORT || 4174,
     open: false,
     host: '0.0.0.0',
   },
