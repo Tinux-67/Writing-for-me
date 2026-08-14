@@ -47,9 +47,21 @@ export default defineConfig({
       ],
     },
   },
-  // Prevent Vite from trying to pre-bundle browser-only modules in Node context
+  // Force pre-bundle of all CJS/heavy deps before first request arrives.
+  // This eliminates the 500 on cold start (Vite pre-bundling race condition).
   optimizeDeps: {
-    exclude: ['localforage'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'react-markdown',
+      'react-syntax-highlighter',
+      'localforage',
+      'dompurify',
+      'marked',
+      'uuid',
+      'file-saver',
+    ],
   },
   preview: {
     port: process.env.PORT || 4173,
