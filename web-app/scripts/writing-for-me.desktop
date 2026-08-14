@@ -2,8 +2,9 @@
 Type=Application
 Name=Writing for Me
 Comment=Start the Writing for Me web-app development server (Vite, port 3030)
-# Replace the path below with the absolute location of dev.sh on your system.
-Exec=bash -c '/absolute/path/to/web-app/scripts/dev.sh'
+# Default assumes the repo is cloned at ~/Writing-for-me. If your clone lives
+# elsewhere, replace the path below with the absolute location of dev.sh.
+Exec=bash -c '/home/USERNAME/Writing-for-me/web-app/scripts/dev.sh'
 Icon=utilities-terminal
 Terminal=true
 Categories=Development;TextEditor;

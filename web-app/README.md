@@ -76,10 +76,13 @@ chmod +x scripts/dev.sh
 PORT=3040 ./scripts/dev.sh  # override port
 ```
 
-For a desktop/dock launcher, install the included `.desktop` file:
+For a desktop/dock launcher, install the included `.desktop` file. It
+assumes the repo is cloned at `~/Writing-for-me`; if your clone lives
+elsewhere, edit the `Exec=` line in `scripts/writing-for-me.desktop` to
+the absolute path of `dev.sh` first.
 
 ```bash
-# Point the Exec line at the absolute path to dev.sh, then:
+# Replace USERNAME in the Exec= line with your real username, then:
 chmod +x scripts/writing-for-me.desktop
 mkdir -p ~/.local/share/applications
 cp scripts/writing-for-me.desktop ~/.local/share/applications/
