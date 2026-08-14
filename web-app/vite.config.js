@@ -29,7 +29,7 @@ export default defineConfig({
   },
   server: {
     port: process.env.PORT || 3000,
-    open: true,
+    open: false,   // Don't auto-open — browser fires before dep optimization finishes → 500
     cors: true,
     host: '0.0.0.0',
     strictPort: true,
@@ -65,7 +65,7 @@ export default defineConfig({
   },
   preview: {
     port: process.env.PORT || 4173,
-    open: true,
+    open: false,
     host: '0.0.0.0',
   },
   test: {
