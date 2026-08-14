@@ -158,6 +158,59 @@ const Editor = ({
     }
   };
 
+  // Sync textarea value directly (bypassing React's controlled input)
+  const syncTextarea = useCallback((textarea, newText, newPos) => {
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype, 'value'
+    ).set;
+    nativeSetter.call(textarea, newText);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.selectionStart = newPos;
+    textarea.selectionEnd = newPos;
+    setLocalContent(newText);
+    debouncedSave(newText);
+  }, [debouncedSave]);
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.key !== 'Enter') return;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const pos = textarea.selectionStart;
+    const text = textarea.value;
+
+    // Find the current line bounds
+    const lineStart = text.lastIndexOf('\n', pos - 1) + 1;
+    const lineEnd = text.indexOf('\n', pos);
+    const currentLine = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+
+    // Match bullet or numbered list prefix
+    const bulletMatch = currentLine.match(/^(- )(.*)/);
+    const numberMatch = currentLine.match(/^(\d+)\. (.*)/);
+
+    if (!bulletMatch && !numberMatch) return; // Normal Enter behaviour
+
+    const content = bulletMatch ? bulletMatch[2] : numberMatch[2];
+
+    // Double-Enter on empty list item → exit the list
+    if (content.trim() === '') {
+      e.preventDefault();
+      const prefixLen = bulletMatch ? 2 : numberMatch[1].length + 2;
+      const newText = text.substring(0, lineStart) + text.substring(lineStart + prefixLen);
+      syncTextarea(textarea, newText, lineStart);
+      return;
+    }
+
+    // Single Enter on a list item → continue the list
+    e.preventDefault();
+    const insertPos = lineEnd === -1 ? text.length : lineEnd;
+    const newPrefix = bulletMatch
+      ? '\n- '
+      : `\n${parseInt(numberMatch[1]) + 1}. `;
+    const newText = text.substring(0, insertPos) + newPrefix + text.substring(insertPos);
+    syncTextarea(textarea, newText, insertPos + newPrefix.length);
+  }, [syncTextarea]);
+
   const getSyntaxStyle = (theme) => {
     return theme === 'dark' ? atomDark : oneLight;
   };
@@ -353,6 +406,7 @@ const Editor = ({
             ref={textareaRef}
             value={localContent}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             onScroll={handleScroll}
             onSelect={handleCursorChange}
             className="editor-textarea"
