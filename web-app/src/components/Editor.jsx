@@ -279,11 +279,11 @@ const Editor = ({
       {showToolbar && (
         <div className="editor-toolbar">
           <div className="toolbar-group">
-            <button className="toolbar-btn" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'bold'))} title="Bold (Ctrl+B)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'bold'))} title="Bold (Ctrl+B)">
+              <b>B</b>
             </button>
-            <button className="toolbar-btn" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'italic'))} title="Italic (Ctrl+I)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'italic'))} title="Italic (Ctrl+I)">
+              <i>I</i>
             </button>
             <button className="toolbar-btn" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'code'))} title="Inline code">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
