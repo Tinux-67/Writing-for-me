@@ -130,7 +130,7 @@ android.entrypoint = org.kivy.android.PythonActivity
 # android.gradle_dependencies =
 
 # (str) python-for-android branch to use
-p4a.branch = develop
+p4a.branch = stable
 
 # (str) OUYA Console category. Should be one of GAME or APP
 # If you leave this blank, OUYA support will not be enabled
