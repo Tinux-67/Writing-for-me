@@ -488,13 +488,28 @@ pre {
 }
 
 .markdown-preview ul,
-.markdown-preview ol {
+.markdown-preview ol,
+.editor-preview ul,
+.editor-preview ol {
   margin-bottom: var(--spacing-md);
   padding-left: var(--spacing-lg);
+  list-style-position: inside;
 }
 
-.markdown-preview li {
+.markdown-preview ul,
+.editor-preview ul {
+  list-style-type: disc;
+}
+
+.markdown-preview ol,
+.editor-preview ol {
+  list-style-type: decimal;
+}
+
+.markdown-preview li,
+.editor-preview li {
   margin-bottom: var(--spacing-xs);
+  line-height: 1.6;
 }
 
 .markdown-preview hr {
