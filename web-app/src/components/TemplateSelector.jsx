@@ -13,7 +13,7 @@ const TemplateSelector = ({
   onInsertTemplate, 
   onClose, 
   theme = 'dark',
-  cursorPosition = 0 
+  _cursorPosition = 0 
 }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
