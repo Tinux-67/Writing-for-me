@@ -6,7 +6,7 @@ A **secure, cross-platform** markdown notes web application with **intuitive UX*
 
 ### Core Features
 - ✅ **Markdown Editor** with live preview and syntax highlighting
-- ✅ **Split-pane view** (edit, preview, or split)
+- ✅ **Split-pane view** (edit, preview, or true 50/50 split)
 - ✅ **Rich toolbar** with formatting shortcuts
 - ✅ **Code blocks** with syntax highlighting for multiple languages
 - ✅ **Tables, lists, links, images** support
@@ -25,19 +25,18 @@ A **secure, cross-platform** markdown notes web application with **intuitive UX*
 - ✅ **Export as HTML** (.html)
 - ✅ **Export as Text** (.txt)
 - ✅ **Export as PDF** (.pdf)
-- ✅ **Export all notes** as ZIP archive
+- ✅ **Export all notes** as ZIP archive (sidebar only)
 - ✅ **Import from files** (markdown, text, HTML)
 
 ### Organization
 - ✅ **Tag support** for categorizing notes
 - ✅ **Search functionality** across all notes
 - ✅ **Sort by date** (newest first)
-- ✅ **Filter by tags**
+- ✅ **Filter by tags** — always-visible pill row in sidebar
 
 ### User Experience
 - ✅ **Dark & Light themes**
 - ✅ **Responsive design** (mobile, tablet, desktop)
-- ✅ **Keyboard shortcuts**
 - ✅ **Collapsible sidebar**
 - ✅ **PWA support** (installable as app)
 - ✅ **Offline support** (IndexedDB storage)
@@ -63,7 +62,8 @@ A **secure, cross-platform** markdown notes web application with **intuitive UX*
    ```
 
 4. **Open in browser:**
-   The app will automatically open at `http://localhost:3000`
+   After `VITE ready` appears, open `http://localhost:3030` manually.
+   (Auto-open is disabled; port 3030 avoids conflict with open-webui on 3000.)
 
 ### Production Build
 
@@ -83,23 +83,22 @@ npm run preview
 
 ### Creating Notes
 - Click the **"New Note"** button in the sidebar
-- Or press **Ctrl/Cmd + N**
 - Start typing in the editor
 
 ### Editing Notes
-- Click on any note in the sidebar to open it
-- Click **"Edit"** to enable editing
+- Click on any note in the sidebar to open it in the editor — notes are **always editable**
 - Use the toolbar for formatting or type markdown directly
-- Press **Ctrl/Cmd + S** or click **"Save"** to save changes
+- The **title** is editable at the top of the editor; changes save automatically with debounce
 
 ### Formatting
-The toolbar provides quick access to common markdown formatting:
-- **Headers**: H1, H2, H3
-- **Text**: Bold, Italic, Strikethrough, Inline Code
-- **Lists**: Bullet List, Numbered List
-- **Code**: Code Block (with language selection)
-- **Links & Images**: Insert Link, Insert Image
-- **Other**: Horizontal Rule, Table
+The toolbar provides quick access to:
+- **Bold** (`**text**`)
+- **Italic** (`_text_`)
+- **Code** (inline)
+- **Bullet List**
+- **Numbered List** (auto-continues on Enter; double-Enter exits list)
+- **Link**
+- **Template Insert**
 
 ### Encrypting Notes
 1. When creating a note, you can optionally set a password
@@ -108,34 +107,27 @@ The toolbar provides quick access to common markdown formatting:
 4. The password is never stored or transmitted
 
 ### Exporting Notes
-1. Open the note you want to export
-2. Click the **Export** button in the header
-3. Choose your preferred format (Markdown, HTML, Text, PDF)
-4. The file will download automatically
-
-### Exporting All Notes
-- Press **Ctrl/Cmd + E** to export all notes as a ZIP archive
+- Export is available from the **sidebar only** (per-note export is not present in the header)
+- For bulk export: click **Export All** in the sidebar to download a ZIP archive
 
 ### Searching Notes
-- Press **Ctrl/Cmd + K** to focus the search input
-- Type your search query
-- Results will filter in real-time
+- Type in the search input in the sidebar
+- Results filter in real-time
 
 ### Using Tags
-- Tags are automatically extracted from your notes
-- Click on a tag in the sidebar to filter notes by that tag
-- Click **"All"** to clear the filter
+- In the editor, type a tag and press **Enter** or **comma** to add it
+- Remove a tag by clicking the **×** on its pill
+- Autocomplete suggests from existing tags
+- In the sidebar, click a tag pill to filter notes; click **All** to clear the filter
 
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl/Cmd + N` | Create new note |
-| `Ctrl/Cmd + K` | Focus search |
-| `Ctrl/Cmd + S` | Save note |
-| `Ctrl/Cmd + E` | Export all notes |
 | `Esc` | Close modals/dropdowns |
 | `Ctrl/Cmd + F` | Find in note (browser native) |
+
+> **Note:** `Ctrl+N`, `Ctrl+S`, and `Ctrl+E` are **not implemented**. Notes save automatically; use the sidebar for export.
 
 ## Security
 
@@ -169,9 +161,9 @@ web-app/
 │   ├── main.jsx            # App entry point
 │   ├── App.jsx              # Main app component
 │   ├── components/          # React components
-│   │   ├── Editor.jsx       # Markdown editor
+│   │   ├── Editor.jsx       # Markdown editor (always editable)
 │   │   ├── Sidebar.jsx      # Navigation sidebar
-│   │   └── NoteDetail.jsx   # Note detail view
+│   │   └── NoteDetail.jsx   # Legacy — not used in routing
 │   ├── hooks/               # Custom React hooks
 │   │   ├── useLocalStorage.js
 │   │   └── useDebounce.js
@@ -270,28 +262,43 @@ const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
 ## Troubleshooting
 
-### Common Issues
+### Port 3000 Conflict
+If another application (e.g., open-webui in Docker) is already using port 3000, you may see a blank page or a 500 error from a different app.
 
-**Notes not saving:**
+**Fix:**
+```bash
+PORT=3030 npm run dev
+```
+Or update `vite.config.js`:
+```js
+export default defineConfig({
+  server: { port: 3030 }
+})
+```
+
+### Service Worker Conflict
+If the browser shows a 500 error or loads the wrong app on `localhost:3030`, a stale service worker from another project may be interfering.
+
+**Fix:**
+1. Open DevTools (F12)
+2. Go to **Application** → **Service Workers** → **Unregister**
+3. Go to **Application** → **Storage** → **Clear site data**
+4. Hard-refresh the page (`Ctrl+Shift+R`)
+
+### Notes Not Saving
 - Check browser console for errors
 - Ensure IndexedDB is not blocked
 - Try clearing browser cache
 
-**Encryption not working:**
+### Encryption Not Working
 - Ensure you're using a strong password (8+ chars, mixed case, numbers, special chars)
 - Check browser console for errors
 - Try a different browser
 
-**Export not working:**
+### Export Not Working
 - Check if the note is encrypted (requires password)
 - Ensure you have write permissions in your download directory
 - Try a different export format
-
-**App not loading:**
-- Check browser console for errors
-- Ensure JavaScript is enabled
-- Try clearing browser cache
-- Try a different browser
 
 ### Debug Mode
 
