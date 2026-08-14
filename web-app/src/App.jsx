@@ -4,7 +4,6 @@ import { NotesProvider } from './context/NotesContext';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
 import Sidebar from './components/Sidebar';
-import NoteDetail from './components/NoteDetail';
 import Editor from './components/Editor';
 import { saveAs } from 'file-saver';
 import { exportAllNotes } from './utils/storage';
@@ -69,9 +68,11 @@ const App = () => {
               <Route
                 path="/note/:id"
                 element={
-                  <NoteDetail
+                  <Editor
                     currentNoteId={currentNoteId}
                     onNoteSelect={setCurrentNoteId}
+                    searchQuery={searchQuery}
+                    currentTag={currentTag}
                   />
                 }
               />
