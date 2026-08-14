@@ -292,7 +292,11 @@ export function insertFormatting(text, start, end, prefix, suffix = '') {
   const after = text.substring(end);
   
   const newText = before + prefix + selected + suffix + after;
-  const newCursorPos = start + prefix.length + selected.length + suffix.length;
+  // No selection: place cursor BETWEEN markers so user types inside them (_|_)
+  // With selection: place cursor AFTER closing marker (_text_|)
+  const newCursorPos = selected.length === 0
+    ? start + prefix.length
+    : start + prefix.length + selected.length + suffix.length;
   
   return { text: newText, newCursorPos };
 }
