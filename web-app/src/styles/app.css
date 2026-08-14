@@ -1072,3 +1072,27 @@
   color: var(--text-muted);
   opacity: 0.7;
 }
+
+/* ===== Split View — equal panes ===== */
+.editor-content.split {
+  display: flex;
+  flex-direction: row;
+}
+
+.editor-content.split .editor-textarea {
+  flex: 1;
+  min-width: 0;
+  width: 50%;
+  height: 100%;
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+}
+
+.editor-content.split .editor-preview {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
