@@ -138,23 +138,25 @@ const Editor = ({
 
       const result = formatter(selectedText, textarea.value, start, end);
 
-      if (typeof result === 'string') {
-        textarea.value = result;
-      } else if (result && typeof result.text === 'string') {
-        textarea.value = result.text;
-        textarea.selectionStart = result.newCursorPos;
-        textarea.selectionEnd = result.newCursorPos;
-      }
+      const newValue = typeof result === 'string' ? result : result?.text ?? textarea.value;
+      const newCursorPos = typeof result === 'object' && result?.newCursorPos != null
+        ? result.newCursorPos : null;
 
       // Sync React state via native setter + input event
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
         window.HTMLTextAreaElement.prototype, 'value'
       ).set;
-      nativeInputValueSetter.call(textarea, textarea.value);
+      nativeInputValueSetter.call(textarea, newValue);
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
 
-      setLocalContent(textarea.value);
-      debouncedSave(textarea.value);
+      // Set cursor AFTER native setter (native setter resets cursor to end)
+      if (newCursorPos !== null) {
+        textarea.selectionStart = newCursorPos;
+        textarea.selectionEnd = newCursorPos;
+      }
+
+      setLocalContent(newValue);
+      debouncedSave(newValue);
       textarea.focus();
     }
   };
