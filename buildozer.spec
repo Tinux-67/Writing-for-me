@@ -75,7 +75,7 @@ orientation = portrait
 fullscreen = 0
 
 # (str) The Android arch to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
-android.arch = arm64-v8a
+android.archs = arm64-v8a
 
 # (int) Android API to use
 android.api = 30
