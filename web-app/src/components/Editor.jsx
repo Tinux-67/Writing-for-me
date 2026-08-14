@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   wrapSelection,
+  insertFormatting,
   createList,
   insertLink,
   getWordCount,
@@ -279,10 +280,10 @@ const Editor = ({
       {showToolbar && (
         <div className="editor-toolbar">
           <div className="toolbar-group">
-            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'bold'))} title="Bold (Ctrl+B)">
+            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => insertFormatting(text, start, end, '**', '**'))} title="Bold (Ctrl+B)">
               <b>B</b>
             </button>
-            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'italic'))} title="Italic (Ctrl+I)">
+            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => insertFormatting(text, start, end, '*', '*'))} title="Italic (Ctrl+I)">
               <i>I</i>
             </button>
             <button className="toolbar-btn" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'code'))} title="Inline code">
