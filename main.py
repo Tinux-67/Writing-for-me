@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -15,12 +16,27 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 from kivy.clock import Clock
 import markdown2
-import git
 from functools import partial
 
+# Git is optional — not available on Android (no git binary)
+try:
+    import git
+    GIT_AVAILABLE = True
+except Exception:
+    GIT_AVAILABLE = False
+
 # --- Constanten ---
-NOTES_DIR = Path("notes")
-GIT_REPO = Path(".")
+# On Android, use the app's user data directory; fall back to cwd on desktop
+def _get_app_dir():
+    try:
+        from android.storage import app_storage_path  # type: ignore
+        return Path(app_storage_path())
+    except ImportError:
+        return Path(".")
+
+APP_DIR = _get_app_dir()
+NOTES_DIR = APP_DIR / "notes"
+GIT_REPO = APP_DIR
 MAX_NOTE_TITLE_LENGTH = 100
 MAX_NOTE_CONTENT_LENGTH = 100000  # 100KB limiet per notitie
 LONG_PRESS_DURATION = 0.6         # seconden voor lang indrukken
@@ -124,6 +140,8 @@ class Note:
 
     def _git_commit(self):
         """Voer Git commit uit in een achtergrondthread."""
+        if not GIT_AVAILABLE:
+            return
         try:
             repo = git.Repo(GIT_REPO)
             repo.index.add([str(self.filepath)])
@@ -182,6 +200,8 @@ class Note:
 
     def _git_delete_commit(self):
         """Voer Git delete commit uit in een achtergrondthread."""
+        if not GIT_AVAILABLE:
+            return
         try:
             repo = git.Repo(GIT_REPO)
             repo.index.remove([str(self.filepath)])
@@ -195,6 +215,8 @@ class GitService:
     @staticmethod
     def init_repo() -> bool:
         """Initialiseer Git repository."""
+        if not GIT_AVAILABLE:
+            return False
         try:
             if not GIT_REPO.joinpath(".git").exists():
                 git.Repo.init(GIT_REPO)
@@ -206,6 +228,8 @@ class GitService:
     @staticmethod
     def get_commit_history() -> list:
         """Haalt Git commit geschiedenis op."""
+        if not GIT_AVAILABLE:
+            return []
         try:
             repo = git.Repo(GIT_REPO)
             return list(repo.iter_commits(max_count=50))
