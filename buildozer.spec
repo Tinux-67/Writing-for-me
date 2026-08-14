@@ -36,7 +36,7 @@ version = 0.1.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy==2.1.0,markdown2,gitpython,plyer
+requirements = python3,kivy==2.3.0,markdown2,gitpython,plyer
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -78,13 +78,13 @@ fullscreen = 0
 android.arch = arm64-v8a
 
 # (int) Android API to use
-android.api = 30
+android.api = 33
 
 # (int) Minimum API required
 android.minapi = 21
 
 # (str) Android NDK version (default is 19b)
-android.ndk = 23b
+android.ndk = 25c
 
 # (bool) Use --private data storage (True) or --dir public storage (False)
 android.private_storage = True
