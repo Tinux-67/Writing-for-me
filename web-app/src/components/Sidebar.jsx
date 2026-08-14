@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotes } from '../context/NotesContext';
 import { getAllTemplates } from '../utils/templates';
+import TagManager from './TagManager';
 
 /**
  * Sidebar Component
@@ -30,6 +31,7 @@ const Sidebar = ({
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [templates, setTemplates] = useState([]);
+  const [showTagManager, setShowTagManager] = useState(false);
   const searchInputRef = useRef(null);
 
   // Load templates on mount
@@ -169,6 +171,19 @@ const Sidebar = ({
 
           {tags.length > 0 && (
             <div className="tags-section">
+              <div className="tags-section-header">
+                <span className="tags-section-label">Tags</span>
+                <button
+                  className="tags-manage-btn"
+                  onClick={() => setShowTagManager(true)}
+                  title="Manage tags"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              </div>
               <div className="tags-pills">
                 <button
                   className={`tag-pill ${!currentTag ? 'active' : ''}`}
@@ -183,6 +198,9 @@ const Sidebar = ({
                 ))}
               </div>
             </div>
+          )}
+          {showTagManager && (
+            <TagManager onClose={() => setShowTagManager(false)} />
           )}
 
           <div className="notes-list">

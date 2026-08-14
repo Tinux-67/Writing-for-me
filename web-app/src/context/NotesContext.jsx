@@ -105,6 +105,44 @@ export const NotesProvider = ({ children }) => {
     }
   };
 
+  // Rename a tag across all notes
+  const handleRenameTag = async (oldTag, newTag) => {
+    const trimmed = newTag.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!trimmed || trimmed === oldTag) return;
+    try {
+      const affected = notes.filter(n => n.tags && n.tags.includes(oldTag));
+      await Promise.all(affected.map(n =>
+        updateNote(n.id, { tags: n.tags.map(t => t === oldTag ? trimmed : t) })
+      ));
+      setNotes(prev => prev.map(n => ({
+        ...n,
+        tags: n.tags ? n.tags.map(t => t === oldTag ? trimmed : t) : []
+      })));
+      const allTags = await getAllTags();
+      setTags(allTags);
+    } catch (_err) {
+      setError(_err.message);
+    }
+  };
+
+  // Delete a tag from all notes
+  const handleDeleteTag = async (tag) => {
+    try {
+      const affected = notes.filter(n => n.tags && n.tags.includes(tag));
+      await Promise.all(affected.map(n =>
+        updateNote(n.id, { tags: n.tags.filter(t => t !== tag) })
+      ));
+      setNotes(prev => prev.map(n => ({
+        ...n,
+        tags: n.tags ? n.tags.filter(t => t !== tag) : []
+      })));
+      const allTags = await getAllTags();
+      setTags(allTags);
+    } catch (_err) {
+      setError(_err.message);
+    }
+  };
+
   // Load data on mount
   useEffect(() => {
     loadData();
@@ -120,6 +158,8 @@ export const NotesProvider = ({ children }) => {
     handleCreateNote,
     handleDeleteNote,
     handleUpdateNote,
+    handleRenameTag,
+    handleDeleteTag,
     setNotes,
     setTags,
     setIsLoading,
