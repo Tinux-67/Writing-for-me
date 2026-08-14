@@ -26,7 +26,7 @@ const Sidebar = ({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');
-  const [showTagsDropdown, setShowTagsDropdown] = useState(false);
+  const [_showTagsDropdown, _setShowTagsDropdown] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -51,7 +51,7 @@ const Sidebar = ({
       if (e.key === 'Escape') {
         setIsSearchFocused(false);
         setShowNewNoteModal(false);
-        setShowTagsDropdown(false);
+        _setShowTagsDropdown(false);
         setShowTemplateDropdown(false);
       }
     };
@@ -111,12 +111,12 @@ const Sidebar = ({
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <button 
-          className="menu-toggle" 
+        <button
+          className="menu-toggle"
           onClick={onToggle}
           aria-label="Toggle sidebar"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
@@ -124,28 +124,20 @@ const Sidebar = ({
         </button>
         {!isCollapsed && (
           <>
-            <h1 className="app-title">Markdown Notes</h1>
+            <span className="app-title">✍️ Notes</span>
             <div className="sidebar-actions">
-              <button 
-                className="theme-toggle" 
-                onClick={onThemeToggle}
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? '☀️' : '🌙'}
+              <button className="icon-btn" onClick={onThemeToggle} title="Toggle theme">
+                {theme === 'dark' ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                )}
               </button>
-              <button 
-                className="export-btn" 
-                onClick={onExport}
-                aria-label="Export notes"
-              >
-                📥
+              <button className="icon-btn" onClick={onExport} title="Export notes">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </button>
-              <button 
-                className="new-note-btn" 
-                onClick={() => setShowNewNoteModal(true)}
-                aria-label="New note"
-              >
-                ➕
+              <button className="icon-btn new-note-icon-btn" onClick={() => setShowNewNoteModal(true)} title="New note">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
           </>
@@ -175,30 +167,23 @@ const Sidebar = ({
             )}
           </div>
 
-          <div className="tags-section">
-            <div className="tags-header">
-              <span>Tags</span>
-              <button 
-                className="tags-toggle" 
-                onClick={() => setShowTagsDropdown(!showTagsDropdown)}
-              >
-                {showTagsDropdown ? '▲' : '▼'}
-              </button>
-            </div>
-            {showTagsDropdown && (
-              <div className="tags-dropdown">
+          {tags.length > 0 && (
+            <div className="tags-section">
+              <div className="tags-pills">
+                <button
+                  className={`tag-pill ${!currentTag ? 'active' : ''}`}
+                  onClick={() => onTagSelect(null)}
+                >All</button>
                 {tags.map(tag => (
                   <button
                     key={tag}
-                    className={`tag-btn ${currentTag === tag ? 'active' : ''}`}
+                    className={`tag-pill ${currentTag === tag ? 'active' : ''}`}
                     onClick={() => handleTagClick(tag)}
-                  >
-                    {tag}
-                  </button>
+                  >#{tag}</button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="notes-list">
             <div className="notes-header">
@@ -213,19 +198,20 @@ const Sidebar = ({
                   className={`note-item ${currentNoteId === note.id ? 'active' : ''}`}
                   onClick={() => handleSelectNote(note.id)}
                 >
-                  <div className="note-title">{note.title}</div>
-                  <div className="note-meta">
-                    <span className="note-date">
-                      {new Date(note.updatedAt).toLocaleDateString()}
-                    </span>
-                    <button 
-                      className="delete-btn" 
+                  <div className="note-item-header">
+                    <span className="note-title">{note.title || 'Untitled'}</span>
+                    <button
+                      className="delete-btn"
                       onClick={(e) => handleDeleteNoteClick(note.id, e)}
                       aria-label="Delete note"
                     >
-                      🗑️
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6 M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                     </button>
                   </div>
+                  <div className="note-preview-text">
+                    {note.content ? note.content.replace(/[#*`_\[\]]/g, '').slice(0, 60) : 'Empty note'}
+                  </div>
+                  <div className="note-date">{new Date(note.updatedAt).toLocaleDateString('nl-NL', {day:'numeric', month:'short'})}</div>
                 </div>
               ))
             )}
@@ -282,3 +268,4 @@ const Sidebar = ({
 };
 
 export default Sidebar;
+
