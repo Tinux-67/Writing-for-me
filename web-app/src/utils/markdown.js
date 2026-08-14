@@ -331,35 +331,43 @@ export function wrapSelection(text, start, end, format) {
  * @returns {{text: string, newCursorPos: number}} Updated text and cursor position
  */
 export function createList(text, start, end, type = 'bullet') {
-  const lines = text.split('\n');
-  const newLines = [];
-  let newCursorPos = 0;
-  let cursorSet = false;
-  
-  lines.forEach((line, index) => {
-    const lineStart = newLines.join('\n').length + (index === 0 ? 0 : 1);
-    const lineEnd = lineStart + line.length;
-    
-    // Check if this line contains the selection
-    const isSelected = start <= lineEnd && end >= lineStart;
-    
-    if (isSelected && !cursorSet) {
-      const prefix = type === 'bullet' ? '- ' : `${newLines.length + 1}. `;
-      newLines.push(prefix + line);
-      newCursorPos = lineStart + prefix.length + (end - start);
-      cursorSet = true;
-    } else if (isSelected) {
-      const prefix = type === 'bullet' ? '- ' : `${newLines.length + 1}. `;
-      newLines.push(prefix + line);
+  // No selection: insert a new list item at/after the current line
+  if (start === end) {
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd = text.indexOf('\n', start);
+    const currentLine = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+    const prefix = type === 'bullet' ? '- ' : '1. ';
+
+    if (currentLine.trim() === '') {
+      // Empty line: add prefix in place
+      const before = text.substring(0, lineStart);
+      const after = text.substring(lineEnd === -1 ? text.length : lineEnd);
+      const newText = before + prefix + after;
+      return { text: newText, newCursorPos: lineStart + prefix.length };
     } else {
-      newLines.push(line);
+      // Non-empty line: append a new list item after it
+      const insertPos = lineEnd === -1 ? text.length : lineEnd;
+      const newText = text.substring(0, insertPos) + '\n' + prefix + text.substring(insertPos);
+      return { text: newText, newCursorPos: insertPos + 1 + prefix.length };
     }
+  }
+
+  // Selection: convert each selected line to a list item, numbering from 1
+  const before = text.substring(0, start);
+  const selected = text.substring(start, end);
+  const after = text.substring(end);
+
+  let counter = 1;
+  const convertedLines = selected.split('\n').map(line => {
+    // Skip re-prefixing if already the right list type
+    if (type === 'bullet' && /^- /.test(line)) return line;
+    if (type === 'number' && /^\d+\. /.test(line)) return line;
+    const prefix = type === 'bullet' ? '- ' : `${counter++}. `;
+    return prefix + line;
   });
-  
-  return {
-    text: newLines.join('\n'),
-    newCursorPos: cursorSet ? newCursorPos : start
-  };
+
+  const newSelected = convertedLines.join('\n');
+  return { text: before + newSelected + after, newCursorPos: start + newSelected.length };
 }
 
 /**
