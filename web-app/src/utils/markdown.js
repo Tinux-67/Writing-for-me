@@ -331,37 +331,65 @@ export function wrapSelection(text, start, end, format) {
  * @returns {{text: string, newCursorPos: number}} Updated text and cursor position
  */
 export function createList(text, start, end, type = 'bullet') {
+  // Helper: find the next list number by scanning lines around the cursor
+  const getNextNumber = (text, lineStart, currentLine) => {
+    // If the current line is already a numbered item, continue from it
+    const currMatch = currentLine.match(/^(\d+)\. /);
+    if (currMatch) return parseInt(currMatch[1]) + 1;
+
+    // Otherwise scan backwards for the last numbered list item
+    const textBefore = text.substring(0, lineStart);
+    const prevLines = textBefore.split('\n');
+    for (let i = prevLines.length - 1; i >= 0; i--) {
+      const m = prevLines[i].match(/^(\d+)\. /);
+      if (m) return parseInt(m[1]) + 1;
+      if (prevLines[i].trim() !== '') break; // non-list non-empty line — stop
+    }
+    return 1;
+  };
+
   // No selection: insert a new list item at/after the current line
   if (start === end) {
     const lineStart = text.lastIndexOf('\n', start - 1) + 1;
     const lineEnd = text.indexOf('\n', start);
     const currentLine = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
-    const prefix = type === 'bullet' ? '- ' : '1. ';
+
+    const prefix = type === 'bullet' ? '- ' : `${getNextNumber(text, lineStart, currentLine)}. `;
 
     if (currentLine.trim() === '') {
-      // Empty line: add prefix in place
       const before = text.substring(0, lineStart);
       const after = text.substring(lineEnd === -1 ? text.length : lineEnd);
-      const newText = before + prefix + after;
-      return { text: newText, newCursorPos: lineStart + prefix.length };
+      return { text: before + prefix + after, newCursorPos: lineStart + prefix.length };
     } else {
-      // Non-empty line: append a new list item after it
       const insertPos = lineEnd === -1 ? text.length : lineEnd;
       const newText = text.substring(0, insertPos) + '\n' + prefix + text.substring(insertPos);
       return { text: newText, newCursorPos: insertPos + 1 + prefix.length };
     }
   }
 
-  // Selection: convert each selected line to a list item, numbering from 1
+  // Selection: convert each selected line, numbering sequentially from context
   const before = text.substring(0, start);
   const selected = text.substring(start, end);
   const after = text.substring(end);
 
+  // Determine starting number from context above the selection
   let counter = 1;
+  if (type === 'number') {
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+    const prevLines = text.substring(0, lineStart).split('\n');
+    for (let i = prevLines.length - 1; i >= 0; i--) {
+      const m = prevLines[i].match(/^(\d+)\. /);
+      if (m) { counter = parseInt(m[1]) + 1; break; }
+      if (prevLines[i].trim() !== '') break;
+    }
+  }
+
   const convertedLines = selected.split('\n').map(line => {
-    // Skip re-prefixing if already the right list type
     if (type === 'bullet' && /^- /.test(line)) return line;
-    if (type === 'number' && /^\d+\. /.test(line)) return line;
+    if (type === 'number' && /^\d+\. /.test(line)) {
+      // Re-number existing items to keep sequence correct
+      return line.replace(/^\d+\. /, `${counter++}. `);
+    }
     const prefix = type === 'bullet' ? '- ' : `${counter++}. `;
     return prefix + line;
   });
