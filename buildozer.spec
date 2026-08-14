@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,md
 # source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-# source.exclude_dirs = tests, bin
+source.exclude_dirs = tests, bin, web-app, .github, .git
 
 # (list) List of exclusions using pattern matching
 # source.exclude_patterns = license,images/*/*.jpg
@@ -36,7 +36,7 @@ version = 0.1.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy==2.1.0,markdown2,gitpython,weasyprint
+requirements = python3,kivy==2.1.0,markdown2,gitpython,plyer
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -144,23 +144,3 @@ p4a.branch = develop
 # and .pyo files will be byte compiled to .pyo
 android.is_game = False
 
-# (str) The Android arch to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
-android.arch = arm64-v8a
-
-# (int) Android API to use
-android.api = 30
-
-# (int) Minimum API required
-android.minapi = 21
-
-# (str) Android NDK version to use
-android.ndk = 23b
-
-# (bool) Use --private data storage (True) or --dir public storage (False)
-android.private_storage = True
-
-# (bool) If True, then skip trying to update the Android sdk
-android.skip_update = False
-
-# (bool) If True, then automatically accept SDK license
-android.accept_sdk_license = True

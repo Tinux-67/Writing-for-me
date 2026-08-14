@@ -66,6 +66,12 @@ pip install buildozer
 buildozer -v android debug
 ```
 
+**Download APK (Android):**
+- Go to [Releases](https://github.com/Tinux-67/Writing-for-me/releases) to download the latest pre-built APK
+- Or trigger a build manually via [Actions → Build Android APK → Run workflow](https://github.com/Tinux-67/Writing-for-me/actions/workflows/build-apk.yml)
+
+**Note:** Enable "Install from unknown sources" in Android settings before installing.
+
 [→ Original Documentation](#-functionaliteiten)
 
 ---
