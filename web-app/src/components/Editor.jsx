@@ -45,18 +45,18 @@ const Editor = ({
   const textareaRef = useRef(null);
   const previewRef = useRef(null);
 
-  // Get current note
   const currentNote = notes.find(note => note.id === currentNoteId);
-
-  // Local content for responsive typing (controlled textarea + no-op onChange = snap-back)
   const [localContent, setLocalContent] = useState(currentNote?.content ?? '');
+  const [title, setTitle] = useState(currentNote?.title ?? '');
 
-  // Sync local content when the current note changes
   useEffect(() => {
     setLocalContent(currentNote?.content ?? '');
   }, [currentNoteId, currentNote?.content]);
 
-  // Debounced save to context / storage (400 ms after last keystroke)
+  useEffect(() => {
+    setTitle(currentNote?.title ?? '');
+  }, [currentNoteId, currentNote?.title]);
+
   const debouncedSave = useCallback(
     debounce(async (content) => {
       if (currentNoteId) {
@@ -66,14 +66,29 @@ const Editor = ({
     [currentNoteId, handleUpdateNote]
   );
 
-  // Handle text changes — update local state instantly, debounce the persist
+  const debouncedTitleSave = useCallback(
+    debounce(async (newTitle) => {
+      if (currentNoteId && newTitle.trim()) {
+        await handleUpdateNote(currentNoteId, { title: newTitle.trim() });
+      }
+    }, 600),
+    [currentNoteId, handleUpdateNote]
+  );
+
   const handleChange = (e) => {
     const newContent = e.target.value;
     setLocalContent(newContent);
     debouncedSave(newContent);
   };
 
-  // Sync scroll between editor and preview
+  const handleTitleChange = (e) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+    if (newTitle.trim()) {
+      debouncedTitleSave(newTitle);
+    }
+  };
+
   const handleScroll = useCallback((e) => {
     if (previewRef.current && activeTab === 'split') {
       const scrollPercentage = e.target.scrollTop / (e.target.scrollHeight - e.target.clientHeight);
@@ -81,62 +96,84 @@ const Editor = ({
     }
   }, [activeTab]);
 
-  // Handle cursor position changes
   const handleCursorChange = (e) => {
     setCursorPosition(e.target.selectionStart);
   };
 
-  // Format text
+  // FIXED: handles { text, newCursorPos } return objects from markdown utils
   const formatText = (formatter) => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = textarea.value.substring(start, end);
-      const newText = formatter(selectedText, textarea.value, start, end);
-      
-      textarea.value = newText;
-      textarea.selectionStart = start + newText.length - selectedText.length;
-      textarea.selectionEnd = textarea.selectionStart;
-      
-      // Trigger onChange
-      const event = new Event('change');
-      textarea.dispatchEvent(event);
+
+      const result = formatter(selectedText, textarea.value, start, end);
+
+      if (typeof result === 'string') {
+        textarea.value = result;
+      } else if (result && typeof result.text === 'string') {
+        textarea.value = result.text;
+        textarea.selectionStart = result.newCursorPos;
+        textarea.selectionEnd = result.newCursorPos;
+      }
+
+      // Sync React state via native setter + input event
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype, 'value'
+      ).set;
+      nativeInputValueSetter.call(textarea, textarea.value);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+      setLocalContent(textarea.value);
+      debouncedSave(textarea.value);
+      textarea.focus();
     }
   };
 
-  // Get syntax highlighter style based on theme
   const getSyntaxStyle = (theme) => {
     return theme === 'dark' ? atomDark : oneLight;
   };
 
-  // Calculate stats (use localContent for live counts)
   const wordCount = currentNote ? getWordCount(localContent) : 0;
   const charCount = currentNote ? getCharacterCount(localContent) : 0;
   const readingTime = currentNote ? getReadingTime(localContent) : 0;
 
-  // Filter notes for selection (used by template/note-picker UI if rendered)
   const _filteredNotes = notes.filter(note => {
     if (currentTag) {
       if (!note.tags || !note.tags.includes(currentTag)) return false;
     }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      if (!note.title.toLowerCase().includes(query) && 
+      if (!note.title.toLowerCase().includes(query) &&
           !note.content.toLowerCase().includes(query)) return false;
     }
     return true;
   });
 
-  // Handle template insertion
-  const handleInsertTemplate = (template) => {
+  // FIXED: receives templateContent string, passes correct args to insertTemplateAtCursor
+  const handleInsertTemplate = (templateContent) => {
     if (textareaRef.current) {
-      insertTemplateAtCursor(textareaRef.current, template.content);
+      const textarea = textareaRef.current;
+      const pos = textarea.selectionStart;
+      const result = insertTemplateAtCursor(textarea.value, templateContent, pos);
+      textarea.value = result.content;
+      textarea.selectionStart = result.cursorPosition;
+      textarea.selectionEnd = result.cursorPosition;
+
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype, 'value'
+      ).set;
+      nativeInputValueSetter.call(textarea, textarea.value);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+      setLocalContent(result.content);
+      debouncedSave(result.content);
       setShowTemplateSelector(false);
+      textarea.focus();
     }
   };
 
-  // Handle new note creation
   const handleNewNote = async () => {
     try {
       const newNote = await handleCreateNote('Untitled Note', '');
@@ -162,69 +199,79 @@ const Editor = ({
       {showToolbar && (
         <div className="editor-toolbar">
           <div className="toolbar-group">
-            <button 
-              onClick={() => formatText(wrapSelection('**', '**'))} 
+            {/* FIXED: callbacks pass (sel, text, start, end) matching util signatures */}
+            <button
+              onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'bold'))}
               title="Bold"
             >
               <b>B</b>
             </button>
-            <button 
-              onClick={() => formatText(wrapSelection('_', '_'))} 
+            <button
+              onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'italic'))}
               title="Italic"
             >
               <i>I</i>
             </button>
-            <button 
-              onClick={() => formatText(wrapSelection('`', '`'))} 
+            <button
+              onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'code'))}
               title="Code"
             >
               `</button>
-            <button 
-              onClick={() => formatText(createList('- '))} 
+            <button
+              onClick={() => formatText((sel, text, start, end) => createList(text, start, end, 'bullet'))}
               title="Bullet List"
             >
               • List
             </button>
-            <button 
-              onClick={() => formatText(createList('1. '))} 
+            <button
+              onClick={() => formatText((sel, text, start, end) => createList(text, start, end, 'number'))}
               title="Numbered List"
             >
               1. List
             </button>
-            <button 
-              onClick={() => formatText(insertLink)} 
+            <button
+              onClick={() => {
+                const url = prompt('Enter URL:');
+                if (url) formatText((sel, text, start, end) => insertLink(text, start, end, url));
+              }}
               title="Insert Link"
             >
               🔗
             </button>
-            <button 
-              onClick={() => formatText(insertImage)} 
+            <button
+              onClick={() => {
+                const url = prompt('Enter image URL:');
+                if (url) {
+                  const alt = prompt('Enter alt text (optional):', 'image');
+                  formatText((sel, text, start, end) => insertImage(text, start, end, url, alt || 'image'));
+                }
+              }}
               title="Insert Image"
             >
               🖼️
             </button>
-            <button 
-              onClick={() => setShowTemplateSelector(true)} 
+            <button
+              onClick={() => setShowTemplateSelector(true)}
               title="Insert Template"
             >
               📄
             </button>
           </div>
           <div className="toolbar-group">
-            <button 
-              onClick={() => setActiveTab('edit')} 
+            <button
+              onClick={() => setActiveTab('edit')}
               className={activeTab === 'edit' ? 'active' : ''}
             >
               Edit
             </button>
-            <button 
-              onClick={() => setActiveTab('preview')} 
+            <button
+              onClick={() => setActiveTab('preview')}
               className={activeTab === 'preview' ? 'active' : ''}
             >
               Preview
             </button>
-            <button 
-              onClick={() => setActiveTab('split')} 
+            <button
+              onClick={() => setActiveTab('split')}
               className={activeTab === 'split' ? 'active' : ''}
             >
               Split
@@ -232,6 +279,18 @@ const Editor = ({
           </div>
         </div>
       )}
+
+      {/* NEW: editable title bar */}
+      <div className="editor-title-bar">
+        <input
+          type="text"
+          className="editor-title-input"
+          value={title}
+          onChange={handleTitleChange}
+          placeholder="Note title..."
+          aria-label="Note title"
+        />
+      </div>
 
       <div className={`editor-content ${activeTab}`}>
         {activeTab !== 'preview' && (
@@ -247,8 +306,8 @@ const Editor = ({
         )}
 
         {activeTab !== 'edit' && (
-          <div 
-            ref={previewRef} 
+          <div
+            ref={previewRef}
             className="editor-preview"
             onScroll={handleScroll}
           >
@@ -287,7 +346,7 @@ const Editor = ({
 
       {showTemplateSelector && (
         <TemplateSelector
-          onSelect={handleInsertTemplate}
+          onInsertTemplate={handleInsertTemplate}
           onClose={() => setShowTemplateSelector(false)}
         />
       )}

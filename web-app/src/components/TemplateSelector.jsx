@@ -60,7 +60,7 @@ const TemplateSelector = ({
   // Handle template selection
   const handleSelectTemplate = (template) => {
     if (onInsertTemplate) {
-      onInsertTemplate(template.content, cursorPosition);
+      onInsertTemplate(template.content);
     }
     onClose();
   };

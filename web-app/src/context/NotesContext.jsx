@@ -1,4 +1,4 @@
-import { createContext, useState, useCallback, useContext } from 'react';
+import { createContext, useState, useCallback, useContext, useEffect } from 'react';
 import {
   getAllNotes,
   getAllTags,
@@ -99,6 +99,11 @@ export const NotesProvider = ({ children }) => {
       throw _err;
     }
   };
+
+  // Load data on mount
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const value = {
     notes,
