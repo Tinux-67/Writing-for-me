@@ -283,7 +283,7 @@ const Editor = ({
             <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => insertFormatting(text, start, end, '**', '**'))} title="Bold (Ctrl+B)">
               <b>B</b>
             </button>
-            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => insertFormatting(text, start, end, '*', '*'))} title="Italic (Ctrl+I)">
+            <button className="toolbar-btn toolbar-btn-text" onClick={() => formatText((sel, text, start, end) => insertFormatting(text, start, end, '_', '_'))} title="Italic (Ctrl+I)">
               <i>I</i>
             </button>
             <button className="toolbar-btn" onClick={() => formatText((sel, text, start, end) => wrapSelection(text, start, end, 'code'))} title="Inline code">
