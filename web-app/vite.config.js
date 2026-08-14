@@ -36,6 +36,20 @@ export default defineConfig({
     hmr: {
       clientPort: process.env.PORT || 3000,
     },
+    // Pre-warm entry modules so the first request never hits a cold 500
+    warmup: {
+      clientFiles: [
+        './src/main.jsx',
+        './src/App.jsx',
+        './src/context/NotesContext.jsx',
+        './src/utils/storage.js',
+        './src/utils/security.js',
+      ],
+    },
+  },
+  // Prevent Vite from trying to pre-bundle browser-only modules in Node context
+  optimizeDeps: {
+    exclude: ['localforage'],
   },
   preview: {
     port: process.env.PORT || 4173,
