@@ -15,22 +15,15 @@ const TemplateSelector = ({
   theme = 'dark',
   _cursorPosition = 0 
 }) => {
+  // Templates and categories are derived synchronously from a static module,
+  // so we initialize state with the values directly instead of using an effect.
+  const [templates] = useState(() => getAllTemplates());
+  const [categories] = useState(() => ['all', ...getAllCategories()]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [templates, setTemplates] = useState([]);
-  const [categories, setCategories] = useState([]);
   const modalRef = useRef(null);
 
-  // Load templates and categories on mount
   useEffect(() => {
-    const allTemplates = getAllTemplates();
-    const allCategories = getAllCategories();
-    
-    setTemplates(allTemplates);
-    setCategories(['all', ...allCategories]);
-    setSelectedCategory('all');
-    
-    // Focus the modal when it opens
     if (modalRef.current) {
       modalRef.current.focus();
     }

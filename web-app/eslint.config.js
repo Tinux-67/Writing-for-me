@@ -1,22 +1,16 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
   js.configs.recommended,
   {
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,
         ...globals.node,
-        // React Router globals
-        useNavigate: 'readonly',
-        useLocation: 'readonly',
-        useParams: 'readonly',
-        Link: 'readonly',
-        Navigate: 'readonly',
-        navigate: 'readonly',
-        // Prism.js
-        Prism: 'readonly',
         // Vitest globals
         describe: 'readonly',
         it: 'readonly',
@@ -33,7 +27,14 @@ export default [
         },
       },
     },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
     rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': 'off',
       'no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
@@ -45,14 +46,10 @@ export default [
       'no-case-declarations': 'off',
       'no-useless-escape': 'off',
       'no-control-regex': 'off',
-      'preserve-caught-error': 'off',
-      'no-const-assign': 'off',
-      'react/react-in-jsx-scope': 'off',
-      'react/prop-types': 'off',
       'no-useless-catch': 'off',
     },
   },
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/test/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**'],
   },
 ];

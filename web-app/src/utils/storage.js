@@ -4,6 +4,7 @@
  */
 
 import localForage from 'localforage';
+import DOMPurify from 'dompurify';
 import { encryptContent, decryptContent, generateId, sanitizeFilename, validateTitle, validateContent } from './security';
 
 // Storage configuration
@@ -79,7 +80,7 @@ export async function createNote(title, content, password = null) {
     return note;
   } catch (_error) {
     
-    throw new Error('Failed to create note');
+    throw new Error('Failed to create note', { cause: _error });
   }
 }
 
@@ -122,7 +123,7 @@ export async function updateNote(id, updates, oldPassword = null) {
             existingNote.iv
           );
         } catch (_error) {
-          throw new Error('Failed to decrypt with old password');
+          throw new Error('Failed to decrypt with old password', { cause: _error });
         }
       }
       
@@ -201,7 +202,7 @@ export async function getNote(id, password = null) {
         return { ...note, content: decryptedContent };
       } catch (_error) {
         
-        throw new Error('Failed to decrypt note. Wrong password or corrupted data.');
+        throw new Error('Failed to decrypt note. Wrong password or corrupted data.', { cause: _error });
       }
     }
     
@@ -225,7 +226,7 @@ export async function getAllNotes() {
     return notes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   } catch (_error) {
     
-    throw new Error('Failed to get all notes');
+    throw new Error('Failed to get all notes', { cause: _error });
   }
 }
 
@@ -239,7 +240,7 @@ export async function deleteNote(id) {
     await notesStore.removeItem(id);
   } catch (_error) {
     
-    throw new Error('Failed to delete note');
+    throw new Error('Failed to delete note', { cause: _error });
   }
 }
 
@@ -252,7 +253,7 @@ export async function deleteAllNotes() {
     await notesStore.clear();
   } catch (_error) {
     
-    throw new Error('Failed to delete all notes');
+    throw new Error('Failed to delete all notes', { cause: _error });
   }
 }
 
@@ -279,7 +280,7 @@ export async function searchNotes(query) {
     });
   } catch (_error) {
     
-    throw new Error('Failed to search notes');
+    throw new Error('Failed to search notes', { cause: _error });
   }
 }
 
@@ -294,7 +295,7 @@ export async function getNotesByTag(tag) {
     return allNotes.filter(note => note.tags && note.tags.includes(tag));
   } catch (_error) {
     
-    throw new Error('Failed to get notes by tag');
+    throw new Error('Failed to get notes by tag', { cause: _error });
   }
 }
 
@@ -316,7 +317,7 @@ export async function getAllTags() {
     return Array.from(tagsSet).sort();
   } catch (_error) {
     
-    throw new Error('Failed to get all tags');
+    throw new Error('Failed to get all tags', { cause: _error });
   }
 }
 
@@ -493,10 +494,11 @@ export async function importNote(file, password = null) {
     // Handle different file types
     switch (extension) {
       case 'html':
-        // Extract content from HTML
+        // Extract content from HTML safely without executing scripts.
+        const clean = DOMPurify.sanitize(content, { USE_PROFILES: { html: true } });
         const temp = document.createElement('div');
-        temp.innerHTML = content;
-        processedContent = temp.textContent || temp.innerText || content;
+        temp.innerHTML = clean;
+        processedContent = temp.textContent || temp.innerText || clean;
         break;
         
       case 'txt':
@@ -529,7 +531,7 @@ export async function importNote(file, password = null) {
     return createNote(title, processedContent, password);
   } catch (_error) {
     
-    throw new Error('Failed to import note');
+    throw new Error('Failed to import note', { cause: _error });
   }
 }
 
@@ -564,7 +566,7 @@ export async function exportAllNotes(password = null) {
     return zipBlob;
   } catch (_error) {
     
-    throw new Error('Failed to export all notes');
+    throw new Error('Failed to export all notes', { cause: _error });
   }
 }
 
@@ -586,7 +588,7 @@ export async function getStorageStats() {
     };
   } catch (_error) {
     
-    throw new Error('Failed to get storage stats');
+    throw new Error('Failed to get storage stats', { cause: _error });
   }
 }
 

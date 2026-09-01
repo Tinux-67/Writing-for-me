@@ -22,48 +22,54 @@ export const NotesProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load initial data
-  const loadData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Load notes
-      const allNotes = await getAllNotes();
-      setNotes(allNotes);
-      
-      // Load tags
-      const allTags = await getAllTags();
-      setTags(allTags);
-      
-      setIsLoading(false);
-    } catch (_err) {
-      setError(_err.message);
-      setIsLoading(false);
-    }
-  }, []);
-
   // Filter notes based on search and tag
   const filteredNotes = useCallback((searchQuery, currentTag) => {
     let result = [...notes];
-    
+
     // Filter by tag
     if (currentTag) {
       result = result.filter(note => note.tags && note.tags.includes(currentTag));
     }
-    
+
     // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(note => 
+      result = result.filter(note =>
         note.title.toLowerCase().includes(query) ||
         note.content.toLowerCase().includes(query) ||
         (note.tags && note.tags.some(tag => tag.toLowerCase().includes(query)))
       );
     }
-    
+
     return result;
   }, [notes]);
+
+  // Load data on mount
+  useEffect(() => {
+    let mounted = true;
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const [allNotes, allTags] = await Promise.all([getAllNotes(), getAllTags()]);
+
+        if (!mounted) return;
+        setNotes(allNotes);
+        setTags(allTags);
+      } catch (_err) {
+        if (!mounted) return;
+        setError(_err.message);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Create new note
   const handleCreateNote = async (title = 'Untitled Note', content = '') => {
@@ -105,18 +111,16 @@ export const NotesProvider = ({ children }) => {
     }
   };
 
-  // Rename a tag across all notes
+  // Rename tag across all notes
   const handleRenameTag = async (oldTag, newTag) => {
-    const trimmed = newTag.trim().toLowerCase().replace(/\s+/g, '-');
-    if (!trimmed || trimmed === oldTag) return;
     try {
       const affected = notes.filter(n => n.tags && n.tags.includes(oldTag));
       await Promise.all(affected.map(n =>
-        updateNote(n.id, { tags: n.tags.map(t => t === oldTag ? trimmed : t) })
+        updateNote(n.id, { tags: n.tags.map(t => t === oldTag ? newTag : t) })
       ));
       setNotes(prev => prev.map(n => ({
         ...n,
-        tags: n.tags ? n.tags.map(t => t === oldTag ? trimmed : t) : []
+        tags: n.tags ? n.tags.map(t => t === oldTag ? newTag : t) : []
       })));
       const allTags = await getAllTags();
       setTags(allTags);
@@ -125,7 +129,7 @@ export const NotesProvider = ({ children }) => {
     }
   };
 
-  // Delete a tag from all notes
+  // Delete tag from all notes
   const handleDeleteTag = async (tag) => {
     try {
       const affected = notes.filter(n => n.tags && n.tags.includes(tag));
@@ -143,17 +147,11 @@ export const NotesProvider = ({ children }) => {
     }
   };
 
-  // Load data on mount
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
   const value = {
     notes,
     tags,
     isLoading,
     error,
-    loadData,
     filteredNotes,
     handleCreateNote,
     handleDeleteNote,
@@ -185,3 +183,5 @@ export const useNotes = () => {
 };
 
 export default NotesContext;
+
+export { NotesContext };
