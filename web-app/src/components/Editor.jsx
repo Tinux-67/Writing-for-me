@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
@@ -15,17 +16,6 @@ import {
 import { insertTemplateAtCursor } from '../utils/templates';
 import { useNotes } from '../context/NotesContext';
 import TemplateSelector from './TemplateSelector';
-
-/**
- * Simple debounce utility — delays fn until after `delay` ms of inactivity.
- */
-function debounce(fn, delay) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
 
 /**
  * Markdown Editor Component
@@ -59,7 +49,7 @@ const Editor = ({
     if (urlNoteId && urlNoteId !== currentNoteId) {
       onNoteSelect(urlNoteId);
     }
-  }, [urlNoteId]);
+  }, [urlNoteId, currentNoteId, onNoteSelect]);
 
   // Tag handlers
   const handleAddTag = async () => {
@@ -77,29 +67,38 @@ const Editor = ({
     await handleUpdateNote(currentNoteId, { tags: existing.filter(t => t !== tag) });
   };
 
+  // Keep local editor state in sync with the selected note.
   useEffect(() => {
-    setLocalContent(currentNote?.content ?? '');
-  }, [currentNoteId, currentNote?.content]);
+    const nextContent = currentNote?.content ?? '';
+    const nextTitle = currentNote?.title ?? '';
+    setLocalContent(prev => (prev === nextContent ? prev : nextContent));
+    setTitle(prev => (prev === nextTitle ? prev : nextTitle));
+  }, [currentNoteId, currentNote?.content, currentNote?.title]);
 
-  useEffect(() => {
-    setTitle(currentNote?.title ?? '');
-  }, [currentNoteId, currentNote?.title]);
+  const debouncedSaveRef = useRef(null);
+  const debouncedTitleSaveRef = useRef(null);
 
   const debouncedSave = useCallback(
-    debounce(async (content) => {
-      if (currentNoteId) {
-        await handleUpdateNote(currentNoteId, { content });
-      }
-    }, 400),
+    (content) => {
+      clearTimeout(debouncedSaveRef.current);
+      debouncedSaveRef.current = setTimeout(async () => {
+        if (currentNoteId) {
+          await handleUpdateNote(currentNoteId, { content });
+        }
+      }, 400);
+    },
     [currentNoteId, handleUpdateNote]
   );
 
   const debouncedTitleSave = useCallback(
-    debounce(async (newTitle) => {
-      if (currentNoteId && newTitle.trim()) {
-        await handleUpdateNote(currentNoteId, { title: newTitle.trim() });
-      }
-    }, 600),
+    (newTitle) => {
+      clearTimeout(debouncedTitleSaveRef.current);
+      debouncedTitleSaveRef.current = setTimeout(async () => {
+        if (currentNoteId && newTitle.trim()) {
+          await handleUpdateNote(currentNoteId, { title: newTitle.trim() });
+        }
+      }, 600);
+    },
     [currentNoteId, handleUpdateNote]
   );
 
@@ -413,6 +412,7 @@ const Editor = ({
           >
             <ReactMarkdown
               children={localContent}
+              rehypePlugins={[rehypeSanitize]}
               components={{
                 code({ node: _node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');

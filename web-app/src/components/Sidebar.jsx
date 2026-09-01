@@ -30,15 +30,9 @@ const Sidebar = ({
   const [_showTagsDropdown, _setShowTagsDropdown] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
-  const [templates, setTemplates] = useState([]);
+  const [templates] = useState(() => getAllTemplates());
   const [showTagManager, setShowTagManager] = useState(false);
   const searchInputRef = useRef(null);
-
-  // Load templates on mount
-  useEffect(() => {
-    const allTemplates = getAllTemplates();
-    setTemplates(allTemplates);
-  }, []);
 
   // Handle keyboard shortcuts
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotes } from '../context/NotesContext';
 
@@ -10,29 +10,19 @@ const NoteDetail = ({ currentNoteId, onNoteSelect }) => {
   const { notes, isLoading, error } = useNotes();
   const { id } = useParams();
   const navigate = useNavigate();
-  const [note, setNote] = useState(null);
 
-  // Get note from context or params
-  useEffect(() => {
-    const noteId = id || currentNoteId;
-    if (noteId) {
-      const foundNote = notes.find(n => n.id === noteId);
-      setNote(foundNote);
-    }
-  }, [id, currentNoteId, notes]);
+  const noteId = id || currentNoteId;
 
-  // Handle note selection
-  const _handleNoteSelect = (noteId) => {
-    onNoteSelect(noteId);
-    navigate(`/note/${noteId}`);
-  };
+  const note = useMemo(() => {
+    if (!noteId) return null;
+    return notes.find(n => n.id === noteId);
+  }, [noteId, notes]);
 
   // Navigate to note if not matching current
-  useEffect(() => {
-    if (id && id !== currentNoteId) {
-      onNoteSelect(id);
-    }
-  }, [id, currentNoteId, onNoteSelect]);
+  const _handleNoteSelect = (selectedId) => {
+    onNoteSelect(selectedId);
+    navigate(`/note/${selectedId}`);
+  };
 
   if (isLoading) {
     return <div className="loading">Loading...</div>;
@@ -59,7 +49,7 @@ const NoteDetail = ({ currentNoteId, onNoteSelect }) => {
           </span>
         </div>
       </div>
-      
+
       <div className="note-tags">
         {note.tags && note.tags.map(tag => (
           <span key={tag} className="tag">
@@ -67,7 +57,7 @@ const NoteDetail = ({ currentNoteId, onNoteSelect }) => {
           </span>
         ))}
       </div>
-      
+
       <div className="note-content">
         <pre>{note.content}</pre>
       </div>
